@@ -5,8 +5,9 @@
 
    Four rules, and every token below serves one of them:
 
-   1. Three cool, clean greys and no borders. Panel, card, well. Separation
-      comes from tone and space, not from lines.
+   1. Three clean greys and no borders. Panel, card, well. Separation comes
+      from tone and space, not from lines. White cards on a faintly green
+      panel, which is where the "green and white" reading comes from.
    2. One accent for action, one for danger. Nothing else is coloured, which
       is what lets a dense screen feel calm. The accent is a deep green,
       chosen dark enough to carry white button text at 5.4:1.
@@ -18,38 +19,38 @@
 
 :root {
   /* ---- The three greys ------------------------------------------------- */
-  --app-bg:        #E8EBEC;   /* the panel everything sits on */
+  --app-bg:        #EFF3F1;   /* the panel everything sits on */
   --surface:       #FFFFFF;   /* a card */
-  --surface-muted: #F6F8F8;
-  --surface-sunk:  #EFF2F3;   /* a well: form fields, empty bays, chips */
+  --surface-muted: #F7FAF9;
+  --surface-sunk:  #F0F4F2;   /* a well: form fields, empty bays, chips */
 
   /* Lines are a last resort. This is for table rows, where rhythm needs it. */
-  --hairline:      #E2E6E8;
+  --hairline:      #E4EAE7;
   --border:        var(--hairline);
-  --border-strong: #D3D9DB;
+  --border-strong: #D2DBD7;
 
   /* ---- Ink -------------------------------------------------------------- */
-  --text:          #0E1416;   /* headings, values, numerals */
-  --text-muted:    #5C686F;   /* labels */
-  --text-faint:    #7F8A91;   /* hints, axis ticks */
+  --text:          #0D1512;   /* headings, values, numerals */
+  --text-muted:    #5A6B64;   /* labels */
+  --text-faint:    #7E8D87;   /* hints, axis ticks */
 
   /* ---- The one accent --------------------------------------------------- */
   /* A deep green carries the primary action and "you are here". It is dark
      enough to take white text, so the ink on it is white rather than black. */
-  --accent:        #0E7A52;
-  --accent-hover:  #0B6443;
-  --accent-soft:   #E0F0E8;   /* a wash: selected bay, active chip */
-  --accent-ink:    #FFFFFF;   /* text on an amber fill */
-  --accent-text:   #0A6344;   /* amber-as-text, dark enough to read */
+  --accent:        #10B981;
+  --accent-hover:  #0DA571;
+  --accent-soft:   #D9F6EA;   /* a wash: selected bay, active chip */
+  --accent-ink:    #06291D;   /* text on an amber fill */
+  --accent-text:   #047857;   /* amber-as-text, dark enough to read */
 
   /* A near-black pill, for the secondary action and the active nav item. */
-  --ink-pill:      #0E1416;
+  --ink-pill:      #0D1512;
   --ink-pill-fg:   #FFFFFF;
 
   /* ---- Danger ----------------------------------------------------------- */
-  --danger:        #D04334;
-  --danger-soft:   #FBE7E4;
-  --danger-ink:    #A32C20;
+  --danger:        #DC4034;
+  --danger-soft:   #FCE8E5;
+  --danger-ink:    #A32A20;
 
   /* Kept so existing components keep working. Warnings moved off amber when
      amber was promoted to the action colour, so they share the danger hue at
@@ -68,31 +69,40 @@
      Almost no colour. An empty bay is a well; an occupied one holds a car;
      a held one is drawn with a dashed edge and a clock. The solid values
      below are only ever used for small legend dots and the summary donut. */
-  --state-free: #AEB8BD;
-  --state-busy: #0E1416;
-  --state-held: #0E7A52;
+  --state-free: #9FB3AA;
+  --state-busy: #0D1512;
+  --state-held: #047857;
 
-  --bay-free-bg: #EFF2F3;
+  --bay-free-bg: #F0F4F2;
   --bay-busy-bg: #FFFFFF;
-  --bay-held-bg: #E4F0EA;
+  --bay-held-bg: #E3F3EC;
 
   /* ---- The lot ---------------------------------------------------------- */
-  --lot-ground:   #DFE4E6;   /* asphalt */
+  --lot-ground:   #E2E8E5;   /* asphalt */
   --lot-line:     #FFFFFF;   /* painted bay markings */
-  --lot-aisle:    #D4DADD;   /* the driving lane */
+  --lot-aisle:    #D6DEDA;   /* the driving lane */
   --lot-aisle-mark: #FFFFFF;
-  --lot-kerb:     #CFD6D9;
+  --lot-kerb:     #D1DAD6;
 
   /* Arrivals and departures: greys, told apart by which side of the axis
      they sit on, so the traffic chart spends no colour either. */
-  --flow-in:  #28323A;
-  --flow-out: #AAB4BA;
+  --flow-in:  #059669;
+  --flow-out: #93A8C8;
 
   /* Chart series, for the Reports screen. */
-  --chart-car:  #37434C;
-  --chart-bike: #95A1A9;
-  --chart-suv:  #0E7A52;
-  --chart-revenue: #0E1416;
+  --chart-car:  #2563EB;
+  --chart-bike: #059669;
+  --chart-suv:  #EA580C;
+  --chart-revenue: #059669;
+
+  /* ---- Categorical, for charts only -------------------------------------
+     Three hues in a fixed order, validated as a set against both the white
+     card and the dark one: lightness, chroma, contrast, and separation under
+     protanopia and deuteranopia. Charts are where colour carries identity,
+     so this is the one place the one-accent rule does not apply. */
+  --cat-1: #059669;   /* green  */
+  --cat-2: #EA580C;   /* orange */
+  --cat-3: #2563EB;   /* blue   */
 
   /* ---- Shape ------------------------------------------------------------ */
   --radius-sm:   10px;
@@ -126,61 +136,66 @@
 /* The same system after dark: cool charcoal, with the green opened up so it
    still reads. The greys inverse, the rules do not move. */
 :root[data-theme="dark"] {
-  --app-bg:        #0F1315;
+  --app-bg:        #0D1311;
   --surface:       #171C1F;
-  --surface-muted: #1B2124;
-  --surface-sunk:  #1F262A;
+  --surface-muted: #1B2225;
+  --surface-sunk:  #1F2629;
 
-  --hairline:      #252D31;
+  --hairline:      #252D30;
   --border:        var(--hairline);
-  --border-strong: #353F45;
+  --border-strong: #354044;
 
-  --text:          #EDF1F2;
-  --text-muted:    #94A1A8;
-  --text-faint:    #6A777E;
+  --text:          #ECF2EF;
+  --text-muted:    #93A49D;
+  --text-faint:    #697B74;
 
-  --accent:        #2FBF84;
-  --accent-hover:  #45D398;
-  --accent-soft:   #103326;
-  --accent-ink:    #04231A;
-  --accent-text:   #45D398;
+  --accent:        #34D399;
+  --accent-hover:  #5EEAB4;
+  --accent-soft:   #0E3328;
+  --accent-ink:    #06291D;
+  --accent-text:   #34D399;
 
-  --ink-pill:      #EDF1F2;
-  --ink-pill-fg:   #0E1416;
+  --ink-pill:      #ECF2EF;
+  --ink-pill-fg:   #0D1512;
 
   --danger:        #E4604F;
-  --danger-soft:   #38201C;
+  --danger-soft:   #37201C;
   --danger-ink:    #F0A092;
 
   --info-soft:   #20272C;  --info-ink:   #A9B6BE;
   --warn-soft:   #33280F;  --warn-ink:   #E0B666;
   --violet-soft: #232833;  --violet-ink: #AEB9CE;
 
-  --state-free: #59656C;
-  --state-busy: #EDF1F2;
-  --state-held: #2FBF84;
+  --state-free: #55665F;
+  --state-busy: #ECF2EF;
+  --state-held: #34D399;
 
   /* A taken bay is lifted well clear of an empty one here, for two reasons:
      a dark-painted car would otherwise disappear into a dark bay, and the
      lighter patch is what makes occupancy legible at a glance in this theme
      the way the car alone does in the light one. */
-  --bay-free-bg: #1A2023;
-  --bay-busy-bg: #2E383D;
-  --bay-held-bg: #153229;
+  --bay-free-bg: #1A2124;
+  --bay-busy-bg: #2E383C;
+  --bay-held-bg: #133026;
 
-  --lot-ground:   #13181B;
+  --lot-ground:   #121819;
   --lot-line:     rgba(255, 255, 255, .13);
-  --lot-aisle:    #0E1214;
+  --lot-aisle:    #0D1213;
   --lot-aisle-mark: rgba(255, 255, 255, .2);
-  --lot-kerb:     #1B2226;
+  --lot-kerb:     #1A2225;
 
-  --flow-in:  #E2E8EA;
-  --flow-out: #5C676E;
+  --flow-in:  #34D399;
+  --flow-out: #6F86A8;
 
-  --chart-car:  #B4BFC6;
-  --chart-bike: #6B767D;
-  --chart-suv:  #2FBF84;
-  --chart-revenue: #EDF1F2;
+  --chart-car:  #2563EB;
+  --chart-bike: #059669;
+  --chart-suv:  #EA580C;
+  --chart-revenue: #34D399;
+
+  /* The same three: they clear every check on the dark card too. */
+  --cat-1: #059669;
+  --cat-2: #EA580C;
+  --cat-3: #2563EB;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
   --shadow:    0 2px 10px rgba(0, 0, 0, .38);
@@ -622,6 +637,26 @@ button.stat:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
 
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Miniature bays, so the key matches what the map actually draws: an empty
+   bay, one with a vehicle in it, one held behind a dashed edge. Shapes
+   rather than glyphs, because a glyph this small turns to mush. */
+.legend--bays .legend-bay {
+  width: 14px; height: 19px; flex: 0 0 14px;
+  border-radius: 3px;
+  display: grid; place-items: center;
+  box-shadow: inset 1.5px 0 0 var(--lot-line), inset -1.5px 0 0 var(--lot-line);
+}
+.legend-bay--free { background: var(--bay-free-bg); }
+.legend-bay--busy { background: var(--bay-busy-bg); }
+.legend-bay--busy i {
+  width: 8px; height: 13px; border-radius: 2.5px;
+  background: var(--text); opacity: .82;
+}
+.legend-bay--held {
+  background: var(--bay-held-bg);
+  outline: 1.5px dashed var(--state-held); outline-offset: -3px;
+}
 
 /* "Updated a moment ago", with a manual refresh beside it. The screens that
    reload on a timer need to say so: numbers that change by themselves are
@@ -1519,6 +1554,79 @@ button.log__row:hover .log__plate { color: var(--primary-ink); }
   .topbar { gap: 10px; }
   .topbar__actions { gap: 4px; }
 }
+
+/* --------------------------------------------------------------------- */
+/* Motion                                                                  */
+/* ---------------------------------------------------------------------
+   Movement here explains rather than decorates: screens settle in from
+   where they came from, charts grow from their own baseline, and figures
+   count to their value so a change is noticed rather than just appearing.
+   Everything is short - 180 to 620ms - because an operator sees these
+   screens all day. The whole layer is switched off under the
+   prefers-reduced-motion rule further down.                              */
+
+/* A screen settles in rather than snapping into place. */
+.page > * { animation: screen-in .34s var(--ease) both; }
+@keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* Cards in the rail arrive one after another, which gives the eye an order
+   to read them in. */
+.rail > * > .rail-card,
+.rail > .rail-card { animation: card-in .4s var(--ease) both; }
+.rail > * > .rail-card:nth-child(1) { animation-delay: .02s; }
+.rail > * > .rail-card:nth-child(2) { animation-delay: .07s; }
+.rail > * > .rail-card:nth-child(3) { animation-delay: .12s; }
+.rail > * > .rail-card:nth-child(4) { animation-delay: .17s; }
+.rail > * > .rail-card:nth-child(5) { animation-delay: .22s; }
+.rail > * > .rail-card:nth-child(6) { animation-delay: .27s; }
+@keyframes card-in { from { opacity: 0; transform: translateY(12px) scale(.995); } }
+
+/* Stat cards sweep across the row. */
+.grid--stats > * { animation: card-in .38s var(--ease) both; }
+.grid--stats > *:nth-child(2) { animation-delay: .05s; }
+.grid--stats > *:nth-child(3) { animation-delay: .1s; }
+.grid--stats > *:nth-child(4) { animation-delay: .15s; }
+
+/* The donut draws itself round. Each segment's dash values are set inline,
+   so this moves the whole arc rather than touching its geometry. */
+.occupancy__arc,
+.donut-wrap circle[stroke-dasharray] {
+  animation: arc-draw .62s var(--ease) both;
+  transform-origin: center;
+}
+@keyframes arc-draw {
+  from { opacity: 0; transform: rotate(-14deg) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Bars grow out of the axis they stand on. */
+.chart .bar  { transform-origin: 50% 100%; animation: bar-grow .5s var(--ease) both; }
+.traffic__in { transform-origin: 50% 100%; animation: bar-grow .45s var(--ease) both; }
+.traffic__out{ transform-origin: 50% 0%;   animation: bar-grow .45s var(--ease) both; }
+@keyframes bar-grow { from { transform: scaleY(0); opacity: .4; } }
+
+/* A figure counting up holds its width so the layout cannot jitter. */
+[data-count] { font-variant-numeric: tabular-nums; }
+
+/* Controls acknowledge a press. */
+.btn {
+  transition: background-color .14s var(--ease), color .14s var(--ease),
+              transform .09s var(--ease), box-shadow .14s var(--ease), filter .14s var(--ease);
+}
+.btn:active:not(:disabled) { transform: translateY(1px) scale(.985); }
+.icon-btn:active { transform: scale(.94); }
+.chip { transition: background-color .16s var(--ease), color .16s var(--ease),
+                    border-color .16s var(--ease), transform .12s var(--ease); }
+.chip:active { transform: scale(.96); }
+.nav-item { transition: background-color .18s var(--ease), color .18s var(--ease); }
+
+/* Rows nudge under the pointer, enough to feel live without moving the eye. */
+.log__row, .shortcut { transition: background-color .14s var(--ease), transform .14s var(--ease); }
+button.log__row:hover, .shortcut:hover { transform: translateX(2px); }
+
+/* Table rows on arrival. */
+table.data tbody tr { animation: row-in .3s var(--ease) both; }
+@keyframes row-in { from { opacity: 0; transform: translateY(5px); } }
 
 /* --------------------------------------------------------------------- */
 /* Printing: only the ticket, on plain white paper.                        */

@@ -10,7 +10,7 @@ import {
   escapeHtml, money, moneyShort, duration, dateTime, timeOnly, relativeTime,
   hourRange, vehicleTypeLabel,
 } from '../format.js';
-import { badge, icon, errorState, loadingState, freshnessBar, startFreshness } from '../ui.js';
+import { badge, icon, errorState, loadingState, freshnessBar, startFreshness, countUp } from '../ui.js';
 import { createFacility } from '../facility.js';
 
 export async function render(container, ctx) {
@@ -42,6 +42,7 @@ export async function render(container, ctx) {
   const freshness = startFreshness(container, 'dashFreshness', () => load());
 
   let latest = null;
+  let counted = false;
 
   const facility = createFacility(container.querySelector('#dashMap'), {
     persistKey: 'dashboard',
@@ -59,6 +60,10 @@ export async function render(container, ctx) {
       facility.update(data);
       railBody.innerHTML = railHtml(data);
       wireRail(railBody, data);
+      if (!counted) {
+        counted = true;
+        countUp(railBody);
+      }
       freshness.markUpdated();
       ctx.refreshShell();
     } catch (problem) {
@@ -161,10 +166,13 @@ function railHtml(data) {
     </div>`;
 }
 
+// The donut is a chart, so it uses the categorical ramp rather than the
+// interface's single accent. Green reads as free, orange as taken, blue as
+// spoken for, and the three were validated together for both themes.
 const STATES = [
-  { key: 'availableSlots', label: 'Available', colour: 'var(--state-free)' },
-  { key: 'occupiedSlots', label: 'Occupied', colour: 'var(--state-busy)' },
-  { key: 'reservedSlots', label: 'Reserved', colour: 'var(--state-held)' },
+  { key: 'availableSlots', label: 'Available', colour: 'var(--cat-1)' },
+  { key: 'occupiedSlots', label: 'Occupied', colour: 'var(--cat-2)' },
+  { key: 'reservedSlots', label: 'Reserved', colour: 'var(--cat-3)' },
 ];
 
 function summaryCard(data) {

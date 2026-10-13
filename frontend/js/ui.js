@@ -237,13 +237,76 @@ export async function withBusyButton(button, work) {
 // Slot legend
 // ---------------------------------------------------------------------------
 
+/**
+ * The map's key. It shows the bay treatments themselves rather than colour
+ * dots, because that is how the map actually reads: a taken bay has a car in
+ * it, a held one has a dashed edge. Dots would have promised a colour code
+ * the map does not use.
+ */
 export function slotLegend() {
   return `
-    <div class="legend">
-      <span><span class="dot dot--busy"></span>Occupied</span>
-      <span><span class="dot dot--ok"></span>Available</span>
-      <span><span class="dot dot--held"></span>Reserved</span>
+    <div class="legend legend--bays">
+      <span><span class="legend-bay legend-bay--free"></span>Available</span>
+      <span><span class="legend-bay legend-bay--busy"><i></i></span>Occupied</span>
+      <span><span class="legend-bay legend-bay--held"></span>Reserved</span>
     </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Counting figures
+// ---------------------------------------------------------------------------
+
+/**
+ * Runs the headline figures inside `root` up to their value.
+ *
+ * It animates the number and leaves everything around it alone, so a rupee
+ * sign, a thousands separator or a trailing "hrs" survives. The final frame
+ * always writes the original text back verbatim, which means the figure on
+ * screen is exactly what the server sent, never something reconstructed from
+ * a rounded number.
+ *
+ * Skipped entirely when the operator has asked for reduced motion.
+ */
+export function countUp(root, selector = '.stat__value, .rail-stats__value, .occupancy__total') {
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (still) return;
+
+  root.querySelectorAll(selector).forEach((element) => {
+    const finalText = element.textContent;
+    const match = finalText.match(/-?[\d,]*\.?\d+/);
+    if (!match) return;                       // nothing numeric, e.g. an em dash
+
+    const target = Number(match[0].replace(/,/g, ''));
+    if (!Number.isFinite(target) || target === 0) return;
+
+    const decimals = (match[0].split('.')[1] || '').length;
+    const before = finalText.slice(0, match.index);
+    const after = finalText.slice(match.index + match[0].length);
+    const grouped = match[0].includes(',');
+    const started = performance.now();
+    const duration = 520;
+
+    element.setAttribute('data-count', '');
+
+    const frame = (now) => {
+      const t = Math.min(1, (now - started) / duration);
+      // Ease out, so it decelerates into the number rather than stopping dead.
+      const eased = 1 - Math.pow(1 - t, 3);
+      if (t < 1) {
+        const value = target * eased;
+        const shown = grouped
+          ? value.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+          : value.toFixed(decimals);
+        element.textContent = before + shown + after;
+        requestAnimationFrame(frame);
+      } else {
+        element.textContent = finalText;      // exactly what the server sent
+        element.removeAttribute('data-count');
+      }
+    };
+    element.textContent = before + (0).toFixed(decimals) + after;
+    requestAnimationFrame(frame);
+  });
 }
 
 // ---------------------------------------------------------------------------

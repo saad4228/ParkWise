@@ -9,7 +9,7 @@ import {
   escapeHtml, money, moneyShort, duration, hourRange, vehicleTypeLabel,
   dateInputToStartTimestamp, dateInputToEndTimestamp, timestampToDateInput,
 } from '../format.js';
-import { statCard, emptyState, errorState, loadingState, toast } from '../ui.js';
+import { statCard, emptyState, errorState, loadingState, toast, countUp } from '../ui.js';
 
 // The three series colours live in the stylesheet as --chart-* tokens, which
 // were checked for contrast against the card and for separation from each
@@ -21,6 +21,10 @@ const TYPE_COLOURS = {
   BIKE: 'var(--chart-bike)',
   SUV: 'var(--chart-suv)',
 };
+
+// Revenue is one series, so it takes a single hue of its own rather than
+// borrowing one that means a vehicle type in the donut beside it.
+
 
 export async function render(container) {
   // Default window: the last 14 days up to and including today.
@@ -70,6 +74,7 @@ export async function render(container) {
 
       const data = await api.reports(params);
       draw(data);
+      countUp(body);
     } catch (problem) {
       body.innerHTML = errorState(problem.message);
       body.querySelector('[data-retry]')?.addEventListener('click', load);
