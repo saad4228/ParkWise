@@ -330,16 +330,49 @@ Plain ES modules, no framework and no build step.
 
 | File | Responsibility |
 |---|---|
-| `app.js` | Hash routing, nav state, theme, global search, queue badge |
+| `app.js` | Hash routing, nav state, collapsible menu, theme, global search, live status, queue badge |
 | `api.js` | Every call to the server; throws `ApiError` carrying the server's own code and message |
-| `ui.js` | Shared components: stat cards, badges, tables, toasts, the confirm dialog, the slot grid |
+| `ui.js` | Shared components: stat cards, badges, tables, toasts, the confirm dialog, freshness line |
+| `facility.js` | The top-down car park: derives rows from slot ids, draws bays and vehicles, zoom, filters, keyboard movement, hover card |
 | `format.js` | Money, dates, durations, HTML escaping, datetime-local conversion |
 | `ticket.js` | The ticket panel and the print view |
 | `pages/*.js` | One module per screen, each exporting `render(container, ctx)` |
 
 Each page module returns an optional cleanup function, which the router calls
 before replacing the screen — that is how the auto-refresh timers on Dashboard,
-Slots and Queue are stopped.
+Slots and Queue are stopped, and how the map removes its hover card.
+
+### The facility map
+
+The dashboard and Parking Slots share one map, built in `facility.js`. It is
+real buttons laid out with CSS, not a picture, so every bay can be hovered,
+focused, selected and read aloud, and it redraws from whatever the server last
+sent.
+
+**The layout is derived, never invented.** The data holds no positions, so
+the map reads them from slot ids: leading letters name the row, the number
+orders the bay, rows pair up across a driving aisle, and a row longer than
+sixteen wraps. `buildLayout()` is a plain function over the slot list, which
+keeps those rules in one place where they can be read and explained.
+
+**Zoom re-lays the map out rather than scaling it.** Every dimension is a
+multiple of a `--zoom` custom property, so the scrollbars stay accurate and
+the bays stay crisp. "Fit" measures the drawn rows and scales to the window.
+
+**Filters dim rather than hide.** On a map, where a bay *is* matters, so
+filtering by type, status or plate fades the rest instead of collapsing the
+layout. Choosing a row is the exception: that is a request to look at one row.
+
+**Keyboard.** The whole map is a single tab stop. Left and Right move along a
+row; Up and Down jump to the nearest bay across the aisle, judged by where the
+bays actually sit on screen, since rows can differ in length.
+
+**Colour means state, and nothing else, on this screen.** Vehicles are painted
+neutral, the hourly-traffic chart is grey and tells arrivals from departures by
+sitting above or below its axis, and the three state colours were validated as
+a set against both themes. A bay whose state changed since it was last on
+screen pulses once, which is how a check-in made at the barrier is noticed on
+the dashboard.
 
 **Keyboard and focus.** The shell does four things that only matter if you are
 not using a mouse, and each was something the markup already implied but did

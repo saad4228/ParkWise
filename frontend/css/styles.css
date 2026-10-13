@@ -4,119 +4,172 @@
    Every colour, radius and spacing step is a variable on :root, so the whole
    look is decided in this one block. The dark theme further down only swaps
    those variables - no component rule is written twice.
+
+   One rule governs colour: on the parking map, colour means the STATE of a
+   bay and nothing else. Vehicles are painted neutral, the traffic chart is
+   drawn in greys and tells arrivals from departures by position, and the
+   three state colours were checked so they stay distinct for a colour-blind
+   operator - including the green/red pair most car parks use, which fails.
    =========================================================================== */
 
 :root {
-  /* Surfaces: a dark navy sidebar against a light working area, which is
-     how the reference screens are laid out. */
-  --app-bg:        #F1F5F9;
+  /* Surfaces: a soft off-white page, white cards, hairline borders. */
+  --app-bg:        #F4F6F8;
   --surface:       #FFFFFF;
-  --surface-muted: #F8FAFC;
-  --surface-sunk:  #F1F5F9;
-  --sidebar-bg:    #0F172A;
-  --sidebar-fg:    #CBD5E1;
-  --sidebar-fg-strong: #FFFFFF;
-  --sidebar-active-bg: #1E293B;
-  --sidebar-hover-bg:  #172033;
+  --surface-muted: #F8FAFB;
+  --surface-sunk:  #EEF2F5;
 
-  --border:        #E2E8F0;
+  --sidebar-bg:        #FFFFFF;
+  --sidebar-border:    #E6EAEF;
+  --sidebar-fg:        #4B5A6E;
+  --sidebar-fg-strong: #0F172A;
+  --sidebar-active-bg: #E6F4F2;
+  --sidebar-active-fg: #0F766E;
+  --sidebar-hover-bg:  #F1F4F7;
+
+  --border:        #E3E8EE;
   --border-strong: #CBD5E1;
 
   --text:          #0F172A;
-  --text-muted:    #64748B;
-  --text-faint:    #94A3B8;
+  --text-muted:    #5B6B80;
+  --text-faint:    #8A99AD;
 
-  /* Brand + status */
-  --primary:        #10B981;
-  --primary-hover:  #059669;
-  --primary-soft:   #D1FAE5;
-  --primary-ink:    #065F46;
+  /* Brand: a restrained teal. Deep enough that white button text passes
+     WCAG AA (5.5:1), which the earlier emerald did not. */
+  --primary:        #0F766E;
+  --primary-hover:  #115E59;
+  --primary-soft:   #E6F4F2;
+  --primary-ink:    #0F766E;
+  --on-primary:     #FFFFFF;
 
-  --info:        #3B82F6;
-  --info-soft:   #DBEAFE;
-  --info-ink:    #1E40AF;
+  --info:        #2563EB;
+  --info-soft:   #E3EBFC;
+  --info-ink:    #1D4ED8;
 
-  --warn:        #F59E0B;
+  --warn:        #D97706;
   --warn-soft:   #FEF3C7;
   --warn-ink:    #92400E;
 
-  --danger:      #F43F5E;
-  --danger-soft: #FFE4E6;
-  --danger-ink:  #9F1239;
+  --danger:      #DC2626;
+  --danger-soft: #FDECEC;
+  --danger-ink:  #B91C1C;
 
-  --violet:      #8B5CF6;
+  --violet:      #7C3AED;
   --violet-soft: #EDE9FE;
   --violet-ink:  #5B21B6;
 
-  /* Chart series colours, kept separate from the interface colours.
-     A chart sits on a white card and has to stay readable for a colour-blind
-     operator, so these three were checked for lightness, contrast against the
-     card, and separation from each other under protanopia and deuteranopia.
-     The dark theme picks its own three further down rather than reusing these:
-     the same green that reads well on white is out of range on a dark card. */
+  /* ---- Bay state -------------------------------------------------------
+     The solid three were validated as a set against both card colours:
+     lightness, contrast, and separation under protanopia and deuteranopia.
+     The usual green-for-free / red-for-taken pair measured a delta-E of 2.7
+     for a deuteranope - effectively one colour - so "free" is a blue-green
+     teal, which keeps the go/stop reading and separates by 13.1. */
+  --state-free: #0D9488;
+  --state-busy: #DC2626;
+  --state-held: #2563EB;
+
+  --bay-free-bg: #DDF3EF;  --bay-free-fg: #0F766E;
+  --bay-busy-bg: #FBE8E8;  --bay-busy-fg: #B91C1C;
+  --bay-held-bg: #E3EBFC;  --bay-held-fg: #1D4ED8;
+
+  /* Kept for anything still using the older names. */
+  --slot-free-bg: var(--bay-free-bg); --slot-free-fg: var(--bay-free-fg); --slot-free-br: var(--state-free);
+  --slot-busy-bg: var(--bay-busy-bg); --slot-busy-fg: var(--bay-busy-fg); --slot-busy-br: var(--state-busy);
+  --slot-held-bg: var(--bay-held-bg); --slot-held-fg: var(--bay-held-fg); --slot-held-br: var(--state-held);
+
+  /* ---- The lot itself: asphalt, painted lines, aisles, kerbs. ---------- */
+  --lot-ground:     #EDF1F4;
+  --lot-line:       #FFFFFF;
+  --lot-aisle:      #CBD4DD;
+  --lot-aisle-mark: #FFFFFF;
+  --lot-kerb:       #DCE3EA;
+  --vehicle-body:   #FFFFFF;
+  --vehicle-shadow: rgba(15, 23, 42, .28);
+
+  /* Arrivals and departures. Grey on purpose: they are told apart by sitting
+     above or below the axis, so they never borrow a bay-state colour. */
+  --flow-in:  #3A4A60;
+  --flow-out: #9AA8BA;
+
+  /* Chart series on the Reports screen. */
   --chart-car:  #3B82F6;
   --chart-bike: #047857;
   --chart-suv:  #BE185D;
-  /* Revenue is a magnitude, not one of the vehicle types, so it gets a hue of
-     its own. Sharing Car's blue made the bars next to the donut look as though
-     they were about cars. */
   --chart-revenue: #8B5CF6;
-
-  /* Slot states */
-  --slot-free-bg: #DCFCE7; --slot-free-fg: #166534; --slot-free-br: #86EFAC;
-  --slot-busy-bg: #FEE2E2; --slot-busy-fg: #991B1B; --slot-busy-br: #FCA5A5;
-  --slot-held-bg: #DBEAFE; --slot-held-fg: #1E40AF; --slot-held-br: #93C5FD;
 
   --radius-sm: 6px;
   --radius:    10px;
   --radius-lg: 14px;
   --radius-xl: 18px;
 
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
-  --shadow:    0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
-  --shadow-lg: 0 10px 30px rgba(15, 23, 42, .12);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
+  --shadow:    0 1px 3px rgba(15, 23, 42, .07), 0 1px 2px rgba(15, 23, 42, .04);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, .12);
 
-  --sidebar-w: 232px;
-  --topbar-h:  68px;
+  --sidebar-w:           232px;
+  --sidebar-w-collapsed: 72px;
+  --topbar-h:            64px;
+
+  --ease: cubic-bezier(.2, .7, .2, 1);
 
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* The dark theme described in the product brief. Only the variables change. */
+/* Deep navy with layered blue-grey panels. Only the variables change. */
 :root[data-theme="dark"] {
-  --app-bg:        #0B1220;
-  --surface:       #182538;
-  --surface-muted: #14203094;
-  --surface-sunk:  #111C2E;
-  --sidebar-bg:    #111C2E;
-  --sidebar-fg:    #94A3B8;
-  --sidebar-fg-strong: #F8FAFC;
-  --sidebar-active-bg: #1E2E47;
-  --sidebar-hover-bg:  #19273C;
+  --app-bg:        #0A1120;
+  --surface:       #152033;
+  --surface-muted: #19253A;
+  --surface-sunk:  #101A2B;
 
-  --border:        #2B3A50;
-  --border-strong: #3A4C66;
+  --sidebar-bg:        #0E1727;
+  --sidebar-border:    #1C283D;
+  --sidebar-fg:        #93A3B8;
+  --sidebar-fg-strong: #F1F5F9;
+  --sidebar-active-bg: #12302E;
+  --sidebar-active-fg: #5EEAD4;
+  --sidebar-hover-bg:  #162136;
 
-  --text:          #F8FAFC;
-  --text-muted:    #94A3B8;
-  --text-faint:    #64748B;
+  --border:        #24324A;
+  --border-strong: #34445F;
 
-  --primary-soft:  #064E3B;
-  --primary-ink:   #6EE7B7;
-  --info-soft:     #1E3A5F;
+  --text:          #F1F5F9;
+  --text-muted:    #9AAABF;
+  --text-faint:    #66768D;
+
+  /* A brighter teal reads on navy; its buttons carry dark text instead. */
+  --primary:        #2DD4BF;
+  --primary-hover:  #5EEAD4;
+  --primary-soft:   #12302E;
+  --primary-ink:    #5EEAD4;
+  --on-primary:     #042F2E;
+
+  --info-soft:     #18294F;
   --info-ink:      #93C5FD;
-  --warn-soft:     #4A3410;
+  --warn-soft:     #43300E;
   --warn-ink:      #FCD34D;
-  --danger-soft:   #4C1D27;
-  --danger-ink:    #FDA4AF;
-  --violet-soft:   #3B2A63;
+  --danger-soft:   #3F1A1F;
+  --danger-ink:    #FCA5A5;
+  --violet-soft:   #2E2356;
   --violet-ink:    #C4B5FD;
 
-  --slot-free-bg: #0B3B2A; --slot-free-fg: #6EE7B7; --slot-free-br: #15674A;
-  --slot-busy-bg: #45141F; --slot-busy-fg: #FDA4AF; --slot-busy-br: #7B2435;
-  --slot-held-bg: #16335C; --slot-held-fg: #93C5FD; --slot-held-br: #27508C;
+  /* The same three solid state colours: they were validated against this
+     card colour too, so nothing needs to change. Only the fills do. */
+  --bay-free-bg: #0F3A38;  --bay-free-fg: #5EEAD4;
+  --bay-busy-bg: #3A1A21;  --bay-busy-fg: #FCA5A5;
+  --bay-held-bg: #172A50;  --bay-held-fg: #93C5FD;
 
-  /* Chosen for the dark card, not flipped from the light values. */
+  --lot-ground:     #18233A;
+  --lot-line:       rgba(255, 255, 255, .17);
+  --lot-aisle:      #131D30;
+  --lot-aisle-mark: rgba(255, 255, 255, .26);
+  --lot-kerb:       #22304A;
+  --vehicle-body:   #DCE3EC;
+  --vehicle-shadow: rgba(0, 0, 0, .5);
+
+  --flow-in:  #CBD5E1;
+  --flow-out: #5D6E86;
+
   --chart-car:  #3B82F6;
   --chart-bike: #15803D;
   --chart-suv:  #DB2777;
@@ -124,7 +177,7 @@
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
   --shadow:    0 1px 3px rgba(0, 0, 0, .4);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, .5);
+  --shadow-lg: 0 14px 34px rgba(0, 0, 0, .5);
 }
 
 /* --------------------------------------------------------------------- */
@@ -203,6 +256,8 @@ svg { width: 20px; height: 20px; fill: currentColor; }
   top: 0;
   height: 100vh;
   z-index: 30;
+  border-right: 1px solid var(--sidebar-border);
+  transition: width .2s var(--ease), flex-basis .2s var(--ease);
 }
 
 .sidebar__brand {
@@ -215,8 +270,9 @@ svg { width: 20px; height: 20px; fill: currentColor; }
 .brand-mark {
   width: 30px; height: 30px; border-radius: 8px;
   background: var(--primary);
-  color: #fff; font-weight: 700; font-size: 16px;
+  color: var(--on-primary); font-weight: 700; font-size: 16px;
   display: grid; place-items: center;
+  flex: 0 0 30px;
 }
 
 .brand-name { color: var(--sidebar-fg-strong); font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
@@ -232,9 +288,10 @@ svg { width: 20px; height: 20px; fill: currentColor; }
   transition: background .12s, color .12s;
 }
 .nav-item:hover { background: var(--sidebar-hover-bg); color: var(--sidebar-fg-strong); }
-.nav-item.is-active { background: var(--sidebar-active-bg); color: var(--sidebar-fg-strong); font-weight: 600; }
+.nav-item.is-active { background: var(--sidebar-active-bg); color: var(--sidebar-active-fg); font-weight: 600; }
 .nav-item__icon { width: 18px; height: 18px; flex: 0 0 18px; opacity: .9; }
-.nav-item.is-active .nav-item__icon { color: var(--primary); opacity: 1; }
+.nav-item.is-active .nav-item__icon { color: var(--sidebar-active-fg); opacity: 1; }
+.nav-item { position: relative; white-space: nowrap; }
 
 .nav-item__badge {
   margin-left: auto;
@@ -245,14 +302,21 @@ svg { width: 20px; height: 20px; fill: currentColor; }
   display: grid; place-items: center;
 }
 
-.sidebar__foot { padding: 14px 20px 18px; border-top: 1px solid rgba(255,255,255,.07); flex: 0 0 auto; }
-.sidebar__status { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.sidebar__version { font-size: 11px; color: #64748B; margin-top: 4px; }
+.sidebar__foot { padding: 10px 12px 14px; border-top: 1px solid var(--sidebar-border); flex: 0 0 auto; }
+.sidebar__version { font-size: 11px; color: var(--text-faint); margin: 6px 12px 0; white-space: nowrap; }
+.sidebar__collapse {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 9px 12px; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--sidebar-fg); cursor: pointer;
+  font-weight: 500; white-space: nowrap; position: relative;
+}
+.sidebar__collapse:hover { background: var(--sidebar-hover-bg); color: var(--sidebar-fg-strong); }
+.sidebar__collapse svg { width: 18px; height: 18px; flex: 0 0 18px; }
 
 .dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; }
-.dot--ok   { background: var(--primary); }
-.dot--busy { background: var(--danger); }
-.dot--held { background: var(--info); }
+.dot--ok   { background: var(--state-free); }
+.dot--busy { background: var(--state-busy); }
+.dot--held { background: var(--state-held); }
 .dot--warn { background: var(--warn); }
 
 .sidebar-scrim {
@@ -400,24 +464,6 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
 .stat__value { font-size: 23px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
 .stat__hint  { font-size: 11.5px; color: var(--text-faint); }
 
-/* A thin bar for "how much of the whole is used". It always sits next to the
-   same figure written out in words, so it adds a glance-value rather than
-   being the only way to read the number. */
-.meter {
-  height: 5px; margin-top: 7px;
-  background: var(--surface-sunk);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.meter__fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--primary);
-  transition: width .3s ease-out;
-}
-.meter__fill--busy { background: var(--warn); }
-.meter__fill--full { background: var(--danger); }
-
 /* --------------------------------------------------------------------- */
 /* Buttons                                                                 */
 /* --------------------------------------------------------------------- */
@@ -434,7 +480,7 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
 }
 .btn svg { width: 16px; height: 16px; }
 
-.btn--primary { background: var(--primary); color: #fff; }
+.btn--primary { background: var(--primary); color: var(--on-primary); }
 .btn--primary:hover:not(:disabled) { background: var(--primary-hover); }
 
 .btn--ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
@@ -573,40 +619,6 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
   border-color: var(--primary);
   color: var(--primary-ink);
 }
-
-/* --------------------------------------------------------------------- */
-/* Slot grid                                                               */
-/* --------------------------------------------------------------------- */
-
-.slot-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
-  gap: 9px;
-}
-
-.slot {
-  position: relative;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  padding: 9px 6px 7px;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  font-weight: 600; font-size: 13px;
-  cursor: pointer;
-  transition: transform .1s, box-shadow .1s, border-color .1s;
-  font-family: var(--font);
-}
-.slot:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
-.slot.is-selected { outline: 2px solid var(--text); outline-offset: 1px; }
-
-/* State is carried by colour, by a small icon and by the text in the
-   tooltip, so colour is never the only signal. */
-.slot--available { --chip-bg: var(--slot-free-bg); background: var(--slot-free-bg); color: var(--slot-free-fg); border-color: var(--slot-free-br); }
-.slot--occupied  { --chip-bg: var(--slot-busy-bg); background: var(--slot-busy-bg); color: var(--slot-busy-fg); border-color: var(--slot-busy-br); }
-.slot--reserved  { --chip-bg: var(--slot-held-bg); background: var(--slot-held-bg); color: var(--slot-held-fg); border-color: var(--slot-held-br); }
-
-.slot__icon { width: 15px; height: 15px; opacity: .85; }
-/* The "free" marker is a quiet hint, not something to read on every tile. */
-.slot--available .slot__icon { opacity: .45; }
 
 /* --------------------------------------------------------------------- */
 /* Tables                                                                  */
@@ -846,6 +858,627 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 .slot-editor__lock { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
 
 /* --------------------------------------------------------------------- */
+/* Collapsible menu (desktop only - below 860px the menu is a drawer)      */
+/* --------------------------------------------------------------------- */
+
+@media (min-width: 861px) {
+  .nav-collapsed .sidebar { width: var(--sidebar-w-collapsed); flex-basis: var(--sidebar-w-collapsed); }
+  .nav-collapsed .sidebar__nav { overflow: visible; }
+  .nav-collapsed .sidebar__brand { justify-content: center; padding: 0; }
+
+  /* The words are clipped rather than removed, so every link keeps its name
+     for a screen reader while the bar is only icons wide. */
+  .nav-collapsed .brand-name,
+  .nav-collapsed .sidebar .nav-item__label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .nav-collapsed .nav-item,
+  .nav-collapsed .sidebar__collapse { justify-content: center; padding: 10px 0; }
+  .nav-collapsed .nav-item__badge {
+    position: absolute; top: 3px; right: 9px;
+    min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px;
+  }
+  .nav-collapsed .sidebar__collapse svg { transform: scaleX(-1); }
+
+  /* The name of each icon, shown beside it on hover or keyboard focus. */
+  .nav-collapsed .nav-item:hover::after,
+  .nav-collapsed .nav-item:focus-visible::after,
+  .nav-collapsed .sidebar__collapse:hover::after,
+  .nav-collapsed .sidebar__collapse:focus-visible::after {
+    content: attr(data-tip);
+    position: absolute; left: calc(100% + 12px); top: 50%;
+    transform: translateY(-50%);
+    padding: 5px 9px; border-radius: var(--radius-sm);
+    background: var(--text); color: var(--surface);
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    box-shadow: var(--shadow-lg); pointer-events: none; z-index: 50;
+    animation: tip-in .12s var(--ease);
+  }
+}
+@keyframes tip-in { from { opacity: 0; transform: translate(-4px, -50%); } }
+
+/* --------------------------------------------------------------------- */
+/* Live connection pill                                                    */
+/* --------------------------------------------------------------------- */
+
+.live-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 30px; padding: 0 11px;
+  border: 1px solid var(--border); border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.live-pill__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--state-free);
+  animation: live-pulse 2.4s ease-out infinite;
+}
+.live-pill.is-offline { color: var(--danger-ink); border-color: var(--danger); }
+.live-pill.is-offline .live-pill__dot { background: var(--state-busy); animation: none; }
+@keyframes live-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--state-free) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* --------------------------------------------------------------------- */
+/* Operations console: the dashboard's three-region layout                 */
+/* --------------------------------------------------------------------- */
+
+/* Fills the window below the top bar, so the map and the rail each scroll
+   inside themselves instead of the whole page scrolling. */
+.console {
+  display: flex; flex-direction: column; gap: 14px;
+  height: calc(100vh - var(--topbar-h) - 48px);
+  min-height: 600px;
+}
+.console .page-head { margin-bottom: 0; }
+
+.ops {
+  flex: 1 1 auto; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px;
+}
+
+.workspace {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------- */
+/* Facility toolbar                                                        */
+/* --------------------------------------------------------------------- */
+
+.facility__toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.select--sm, .input--sm { height: 32px; font-size: 12.5px; border-radius: var(--radius-sm); }
+.select--sm { padding-right: 28px; background-position: right 8px center; width: auto; }
+.facility__search { position: relative; flex: 1 1 180px; min-width: 150px; max-width: 260px; }
+.facility__search svg {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; color: var(--text-faint); pointer-events: none;
+}
+.facility__search .input { padding-left: 29px; }
+.facility__spacer { flex: 1 1 auto; }
+
+.zoom-group {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); overflow: hidden;
+}
+.zoom-group button {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: 0; background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.zoom-group button:hover { background: var(--surface-sunk); color: var(--text); }
+.zoom-group button svg { width: 15px; height: 15px; }
+.zoom-group__value {
+  min-width: 46px; text-align: center;
+  font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  line-height: 30px;
+}
+
+.facility__status {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 7px 12px; border-bottom: 1px solid var(--border);
+  font-size: 11.5px; color: var(--text-muted);
+}
+.facility__match { font-weight: 600; color: var(--text); }
+
+/* --------------------------------------------------------------------- */
+/* Facility view: the top-down car park                                    */
+/* --------------------------------------------------------------------- */
+
+.facility__viewport {
+  position: relative;
+  flex: 1 1 auto; min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--lot-ground);
+}
+.facility__viewport:focus-visible { outline-offset: -3px; }
+
+/* Every dimension is a multiple of --zoom, so zooming re-lays the map out at
+   a new size instead of scaling a picture of it. The scrollbars stay honest
+   and the bays stay crisp and clickable at every size. */
+.lot {
+  --zoom: 1;
+  --bay-w: calc(54px * var(--zoom));
+  --bay-h: calc(92px * var(--zoom));
+  --line: max(1.5px, calc(2px * var(--zoom)));
+
+  display: inline-flex; flex-direction: column;
+  min-width: 100%; min-height: 100%;
+  padding: calc(20px * var(--zoom)) calc(24px * var(--zoom)) calc(20px * var(--zoom)) calc(56px * var(--zoom));
+  background: var(--lot-ground);
+  font-size: calc(11px * var(--zoom));
+}
+
+/* Sized to the widest row and centred, so aisles end where the bays end and
+   a small car park sits in the middle of the window rather than its corner. */
+.lot__inner { display: flex; flex-direction: column; width: max-content; margin: auto; }
+.lot-pair { display: flex; flex-direction: column; }
+
+.lot-row { display: flex; align-items: flex-end; position: relative; }
+.lot-row--up { align-items: flex-start; }
+
+/* The row letter stays pinned to the left edge while the map is panned. */
+.lot-row__label {
+  position: sticky; left: calc(6px * var(--zoom)); z-index: 3;
+  align-self: center;
+  width: calc(28px * var(--zoom)); height: calc(28px * var(--zoom));
+  margin-left: calc(-38px * var(--zoom));
+  margin-right: calc(10px * var(--zoom));
+  display: grid; place-items: center; flex: 0 0 auto;
+  border-radius: calc(8px * var(--zoom));
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 700; font-size: calc(12.5px * var(--zoom));
+  box-shadow: var(--shadow-sm);
+}
+.lot-row__bays { display: flex; align-items: inherit; }
+
+/* The driving lane between two facing rows: a dashed centre line and arrows
+   showing which way traffic flows. */
+.lot-aisle {
+  position: relative;
+  height: calc(46px * var(--zoom));
+  background: var(--lot-aisle);
+  border-radius: calc(4px * var(--zoom));
+  display: flex; align-items: center; justify-content: space-around;
+  color: var(--lot-aisle-mark);
+}
+.lot-aisle::before {
+  content: ""; position: absolute; left: calc(12px * var(--zoom)); right: calc(12px * var(--zoom));
+  top: 50%; height: var(--line);
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, var(--lot-aisle-mark) 0 calc(14px * var(--zoom)),
+                                        transparent calc(14px * var(--zoom)) calc(26px * var(--zoom)));
+  opacity: .9;
+}
+/* The arrow carries a patch of road colour either side of it, so the dashed
+   centre line stops cleanly at the arrow instead of showing through it. */
+.lot-aisle__arrow {
+  position: relative; z-index: 1;
+  box-sizing: content-box;
+  width: calc(22px * var(--zoom)); height: calc(22px * var(--zoom));
+  padding: 0 calc(8px * var(--zoom));
+  background: var(--lot-aisle);
+}
+.lot-aisle--back .lot-aisle__arrow { transform: scaleX(-1); }
+
+/* The way in and the way out. */
+.lot-gate {
+  position: absolute; top: 50%; z-index: 2;
+  display: inline-flex; align-items: center; gap: calc(4px * var(--zoom));
+  padding: calc(4px * var(--zoom)) calc(9px * var(--zoom));
+  border-radius: 999px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  font-size: calc(9.5px * var(--zoom)); font-weight: 700; letter-spacing: .06em;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+.lot-gate svg { width: calc(13px * var(--zoom)); height: calc(13px * var(--zoom)); color: var(--primary-ink); }
+.lot-gate--entry { left: calc(-50px * var(--zoom)); transform: translateY(-50%); }
+.lot-gate--exit  { right: calc(-14px * var(--zoom)); transform: translateY(-50%); }
+
+/* A raised kerb between two pairs of rows. */
+.lot-island {
+  height: calc(12px * var(--zoom));
+  margin: calc(12px * var(--zoom)) 0;
+  border-radius: 999px;
+  background: var(--lot-kerb);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lot-line) 55%, transparent);
+}
+
+/* ---- A single bay ---------------------------------------------------- */
+
+.bay {
+  position: relative;
+  width: var(--bay-w); height: var(--bay-h);
+  flex: 0 0 auto;
+  margin: 0; padding: 0;
+  border: 0;
+  border-right: var(--line) solid var(--lot-line);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: transform .14s var(--ease), opacity .18s var(--ease), filter .18s var(--ease);
+}
+.lot-row__bays > .bay:first-child { border-left: var(--line) solid var(--lot-line); }
+
+/* Vehicle-shaped bays: an SUV needs a little more room, a motorcycle less. */
+.bay--suv  { width: calc(var(--bay-w) * 1.14); height: calc(var(--bay-h) * 1.06); }
+.bay--bike { width: calc(var(--bay-w) * .68);  height: calc(var(--bay-h) * .8); }
+
+/* The tinted floor of the bay, inset from the painted lines either side. */
+.bay::before {
+  content: ""; position: absolute;
+  inset: calc(3px * var(--zoom));
+  border-radius: calc(5px * var(--zoom));
+  background: var(--bay-fill, transparent);
+  transition: background-color .25s var(--ease), box-shadow .14s var(--ease);
+}
+
+/* The back wall of the bay, in the state colour. It stays visible even when
+   a vehicle covers most of the floor, so state never depends on the tint. */
+.bay::after {
+  content: ""; position: absolute;
+  left: calc(5px * var(--zoom)); right: calc(5px * var(--zoom));
+  height: calc(4px * var(--zoom));
+  border-radius: 999px;
+  background: var(--bay-edge, transparent);
+}
+.lot-row--down .bay::after { top: calc(2px * var(--zoom)); }
+.lot-row--up   .bay::after { bottom: calc(2px * var(--zoom)); }
+
+.bay--available { --bay-fill: var(--bay-free-bg); --bay-edge: var(--state-free); color: var(--bay-free-fg); }
+.bay--occupied  { --bay-fill: var(--bay-busy-bg); --bay-edge: var(--state-busy); color: var(--bay-busy-fg); }
+.bay--reserved  { --bay-fill: var(--bay-held-bg); --bay-edge: var(--state-held); color: var(--bay-held-fg); }
+
+/* Reserved is also told apart by a dashed outline: physically empty, but
+   spoken for. */
+.bay--reserved::before {
+  outline: max(1px, calc(1.5px * var(--zoom))) dashed var(--state-held);
+  outline-offset: calc(-3px * var(--zoom));
+}
+
+.bay__id {
+  position: relative; z-index: 2;
+  font-weight: 700; font-size: calc(10.5px * var(--zoom));
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.bay__type {
+  position: relative; z-index: 2;
+  font-size: calc(8.5px * var(--zoom)); font-weight: 700; letter-spacing: .08em;
+  opacity: .65; margin-top: calc(4px * var(--zoom));
+}
+.bay__mark {
+  position: relative; z-index: 2;
+  width: calc(15px * var(--zoom)); height: calc(15px * var(--zoom));
+  margin-top: calc(5px * var(--zoom));
+}
+
+/* The label sits on the open side of the bay, by the aisle, where a driver
+   would read it. */
+.lot-row--down .bay { justify-content: flex-end; padding-bottom: calc(8px * var(--zoom)); }
+.lot-row--up   .bay { justify-content: flex-start; padding-top: calc(8px * var(--zoom)); }
+.lot-row--up   .bay__id { order: -1; }
+.lot-row--up   .bay__type { margin-top: calc(4px * var(--zoom)); }
+
+/* The parked vehicle, nose towards the back wall. */
+.bay__vehicle {
+  position: absolute; z-index: 1;
+  left: 50%; top: 50%;
+  width: calc(var(--bay-w) * .66); height: calc(var(--bay-h) * .7);
+  transform: translate(-50%, -56%);
+  color: var(--vehicle-body);
+  filter: drop-shadow(0 calc(2px * var(--zoom)) calc(3px * var(--zoom)) var(--vehicle-shadow));
+  animation: vehicle-in .35s var(--ease);
+}
+.bay--suv  .bay__vehicle { width: calc(var(--bay-w) * .8 / 1.14 * 1.14); height: calc(var(--bay-h) * .76); }
+.bay--bike .bay__vehicle { width: calc(var(--bay-w) * .5); height: calc(var(--bay-h) * .6); }
+.lot-row--up .bay__vehicle { transform: translate(-50%, -44%) rotate(180deg); animation-name: vehicle-in-up; }
+@keyframes vehicle-in    { from { opacity: 0; transform: translate(-50%, -40%); } }
+@keyframes vehicle-in-up { from { opacity: 0; transform: translate(-50%, -60%) rotate(180deg); } }
+
+/* With a vehicle in the bay, the id sits on a small plate so it stays
+   readable against the roof. */
+.bay--occupied .bay__id {
+  padding: calc(2px * var(--zoom)) calc(4px * var(--zoom));
+  border-radius: calc(4px * var(--zoom));
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  color: var(--bay-busy-fg);
+}
+
+.bay:hover { transform: translateY(calc(-2px * var(--zoom))); z-index: 4; }
+.bay:hover::before { box-shadow: 0 calc(6px * var(--zoom)) calc(14px * var(--zoom)) rgba(15, 23, 42, .16); }
+.bay:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; z-index: 5; border-radius: calc(6px * var(--zoom)); }
+
+.bay.is-selected { z-index: 6; }
+.bay.is-selected::before {
+  box-shadow: 0 0 0 max(2px, calc(2.5px * var(--zoom))) var(--text),
+              0 calc(8px * var(--zoom)) calc(18px * var(--zoom)) rgba(15, 23, 42, .22);
+}
+
+/* Filtered out: still in its place, because the layout is the point, but
+   pushed into the background. */
+.bay.is-dimmed { opacity: .22; filter: saturate(.3); }
+.bay.is-dimmed:hover { opacity: .6; }
+
+/* A bay whose state changed since the last refresh pulses once in its new
+   colour, so a change made at the barrier is noticed on the map. */
+.bay.is-changed::before { animation: bay-changed 1.4s var(--ease) 1; }
+@keyframes bay-changed {
+  0%   { box-shadow: 0 0 0 0 var(--bay-edge); }
+  35%  { box-shadow: 0 0 0 calc(6px * var(--zoom)) color-mix(in srgb, var(--bay-edge) 35%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Small sizes drop the words and keep the shapes. */
+.lot[data-dense] .bay__id,
+.lot[data-dense] .bay__type { display: none; }
+.lot[data-dense] .bay__mark { margin-top: 0; }
+
+.facility__empty { padding: 60px 20px; background: var(--surface); }
+
+/* ---- Hover card ------------------------------------------------------ */
+
+.bay-tip {
+  position: fixed; z-index: 65;
+  min-width: 200px; max-width: 260px;
+  padding: 11px 13px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0; transform: translateY(4px);
+  transition: opacity .12s var(--ease), transform .12s var(--ease);
+}
+.bay-tip.is-visible { opacity: 1; transform: none; }
+.bay-tip__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.bay-tip__id { font-size: 15px; font-weight: 700; }
+.bay-tip dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+.bay-tip dt { color: var(--text-muted); }
+.bay-tip dd { margin: 0; font-weight: 600; text-align: right; }
+.bay-tip__hint { margin-top: 8px; color: var(--text-faint); font-size: 11px; }
+
+/* --------------------------------------------------------------------- */
+/* The right-hand rail                                                     */
+/* --------------------------------------------------------------------- */
+
+.rail {
+  display: flex; flex-direction: column; gap: 12px;
+  min-height: 0; overflow-y: auto;
+  padding-right: 2px;
+}
+.rail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  flex: 0 0 auto;
+}
+.rail-card__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 13px 15px 0;
+}
+.rail-card__head h2 { font-size: 13.5px; font-weight: 600; }
+.link-btn {
+  font-size: 12px; font-weight: 600; color: var(--primary-ink);
+  background: none; border: 0; cursor: pointer; padding: 0;
+}
+.link-btn:hover { text-decoration: underline; }
+.rail-card__body { padding: 12px 15px 14px; }
+
+/* The selected bay, at the top of the rail. */
+.bay-card { border-left: 4px solid var(--bay-card-edge, var(--border)); animation: panel-in .2s var(--ease); }
+.bay-card--available { --bay-card-edge: var(--state-free); }
+.bay-card--occupied  { --bay-card-edge: var(--state-busy); }
+.bay-card--reserved  { --bay-card-edge: var(--state-held); }
+.bay-card__title { display: flex; align-items: center; gap: 10px; }
+.bay-card__title strong { font-size: 20px; letter-spacing: -.02em; }
+.bay-card .detail-list > div { padding: 7px 0; font-size: 12.5px; }
+@keyframes panel-in { from { opacity: 0; transform: translateY(-6px); } }
+
+/* Occupancy summary: a donut beside its own legend. */
+.occupancy { display: flex; align-items: center; gap: 16px; }
+.occupancy svg { width: 112px; height: 112px; flex: 0 0 112px; overflow: visible; }
+.occupancy__arc { transition: stroke-dasharray .5s var(--ease), stroke-dashoffset .5s var(--ease); }
+.occupancy__total { font-size: 22px; font-weight: 700; fill: var(--text); font-family: var(--font); }
+.occupancy__sub { font-size: 10px; fill: var(--text-muted); font-family: var(--font); }
+.occupancy__legend { flex: 1 1 auto; display: grid; gap: 8px; font-size: 12.5px; }
+.occupancy__legend > div { display: flex; align-items: center; gap: 8px; }
+.occupancy__legend .count { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.occupancy__legend .pct { color: var(--text-muted); font-size: 11.5px; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.swatch-dot { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 9px; }
+
+.rail-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  margin-top: 12px; padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+.rail-stats__label { font-size: 11px; color: var(--text-muted); }
+.rail-stats__value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Arrivals above the line, departures below it. */
+.traffic svg { width: 100%; height: auto; display: block; overflow: visible; }
+.traffic__in  { fill: var(--flow-in); }
+.traffic__out { fill: var(--flow-out); }
+.traffic__bar { transition: y .4s var(--ease), height .4s var(--ease); }
+.traffic__col { fill: transparent; }
+.traffic__col.is-on { fill: var(--surface-sunk); }
+.traffic__now { fill: color-mix(in srgb, var(--primary) 9%, transparent); }
+.traffic__axis { stroke: var(--border-strong); stroke-width: 1; }
+.traffic text { font-family: var(--font); font-size: 9.5px; fill: var(--text-faint); }
+.traffic__legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
+.traffic__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.traffic__readout { min-height: 17px; font-size: 11.5px; color: var(--text-muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.traffic__readout strong { color: var(--text); }
+
+/* Recent movements. */
+.log { display: flex; flex-direction: column; }
+.log__row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.log__row:last-child { border-bottom: 0; }
+.log__mark {
+  width: 28px; height: 28px; flex: 0 0 28px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--surface-sunk);
+}
+.log__mark svg { width: 14px; height: 14px; }
+.log__mark--in  { color: var(--flow-in); }
+.log__mark--out { color: var(--flow-out); }
+.log__main { min-width: 0; flex: 1 1 auto; }
+.log__plate { font-weight: 600; font-size: 12.5px; }
+.log__sub { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log__side { font-size: 11px; color: var(--text-faint); text-align: right; white-space: nowrap; }
+.log__fee { display: block; font-weight: 700; color: var(--text); font-size: 12px; }
+/* Each movement is a button that opens its session in History. */
+button.log__row {
+  width: 100%; background: none; border: 0; border-bottom: 1px solid var(--border);
+  text-align: left; cursor: pointer; color: inherit; font: inherit;
+}
+button.log__row:last-child { border-bottom: 0; }
+button.log__row:hover .log__plate { color: var(--primary-ink); }
+.log__plate, .log__sub { display: block; }
+
+/* Shortcuts. */
+.shortcuts { display: flex; flex-direction: column; }
+.shortcut {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0;
+  border: 0; border-bottom: 1px solid var(--border);
+  background: none;
+  width: 100%; text-align: left; cursor: pointer; color: var(--text);
+  font: inherit;
+}
+.shortcut:last-child { border-bottom: 0; }
+.shortcut:hover .shortcut__label { color: var(--primary-ink); }
+.shortcut > svg { width: 16px; height: 16px; color: var(--text-muted); flex: 0 0 16px; }
+.shortcut__text { display: flex; flex-direction: column; min-width: 0; }
+.shortcut__label { font-size: 12.5px; font-weight: 600; }
+.shortcut__hint { font-size: 11px; color: var(--text-muted); }
+.shortcut__count {
+  margin-left: auto; min-width: 22px; height: 20px; padding: 0 7px;
+  border-radius: 999px; display: grid; place-items: center;
+  background: var(--surface-sunk); font-size: 11px; font-weight: 700;
+}
+.shortcut .shortcut__chev { width: 14px; height: 14px; color: var(--text-faint); flex: 0 0 14px; }
+
+/* --------------------------------------------------------------------- */
+/* Parking Slots: the map beside a persistent details panel                */
+/* --------------------------------------------------------------------- */
+
+.slots-console .ops { grid-template-columns: minmax(0, 1fr) 320px; }
+.details-panel { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+
+/* --------------------------------------------------------------------- */
+/* Vehicle Entry: type tiles and the allocated-bay preview                 */
+/* --------------------------------------------------------------------- */
+
+.type-picker { border: 0; padding: 0; margin: 0 0 15px; min-width: 0; }
+.type-picker legend { padding: 0; margin-bottom: 6px; }
+.type-picker__options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+
+/* Real radio buttons underneath, so the arrow keys move between the three
+   and a screen reader announces a group - only the look is custom. */
+.type-option { position: relative; cursor: pointer; }
+.type-option input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.type-option__box {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color .12s var(--ease), background-color .12s var(--ease), box-shadow .12s var(--ease);
+}
+.type-option:hover .type-option__box { border-color: var(--border-strong); }
+.type-option__vehicle {
+  width: 17px; height: 34px; flex: 0 0 17px;
+  color: var(--text-faint);
+  transition: color .12s var(--ease), transform .2s var(--ease);
+}
+.type-option__text { display: flex; flex-direction: column; min-width: 0; }
+.type-option__name { font-weight: 600; font-size: 13.5px; }
+.type-option__free { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+.type-option__free.is-full { color: var(--danger-ink); font-weight: 600; }
+
+.type-option input:checked + .type-option__box {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.type-option input:checked + .type-option__box .type-option__vehicle {
+  color: var(--primary); transform: translateY(-2px);
+}
+.type-option input:focus-visible + .type-option__box { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.entry-allocated { margin-bottom: 10px; color: var(--text-muted); }
+.entry-allocated strong { color: var(--text); font-size: 15px; }
+
+/* One row of the map, small. It scrolls sideways inside the card when the
+   row is longer than the card is wide. */
+.lot-preview {
+  margin-bottom: 14px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  animation: panel-in .3s var(--ease);
+}
+.lot-preview .lot { min-height: 0; padding: 12px 16px 0; }
+/* The caption above already names the bay, and a pinned row letter would sit
+   on top of the first bay once the strip is scrolled to the allocated one. */
+.lot-preview .lot-row__label { display: none; }
+.lot-preview .lot-aisle { height: 14px; }
+
+@media (max-width: 560px) {
+  .type-option__box { flex-direction: column; text-align: center; gap: 4px; padding: 9px 6px; }
+  .type-option__text { align-items: center; }
+}
+
+/* --------------------------------------------------------------------- */
+/* Console on narrow screens: the rail moves below the map                 */
+/* --------------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .console { height: auto; min-height: 0; }
+  .ops, .slots-console .ops { grid-template-columns: minmax(0, 1fr); }
+  .workspace { height: 68vh; min-height: 420px; }
+  .rail, .details-panel { overflow: visible; }
+}
+@media (max-width: 860px) {
+  .facility__search { max-width: none; }
+  .workspace { height: 62vh; }
+}
+
+/* On a phone the connection pill shrinks to its dot, which leaves the search
+   box room to show what it is for. The word stays for a screen reader. */
+@media (max-width: 560px) {
+  .live-pill { padding: 0 9px; gap: 0; }
+  .live-pill #livePillText {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);
+  }
+  .topbar { gap: 10px; }
+  .topbar__actions { gap: 4px; }
+}
+
+/* --------------------------------------------------------------------- */
 /* Printing: only the ticket, on plain white paper.                        */
 /* --------------------------------------------------------------------- */
 
@@ -898,7 +1531,6 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
   .topbar__user-name { display: none; }
   .page { padding: 16px; }
   .page-head h1 { font-size: 20px; }
-  .slot-grid { grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); }
   .slot-editor__row { grid-template-columns: 1fr 120px auto; }
 }
 

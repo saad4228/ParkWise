@@ -1,311 +1,167 @@
-// Parking Slots - the whole facility at a glance, with a detail panel.
+// Parking Slots - the whole facility on the map, with a details panel that
+// stays put beside it.
 //
-// A slot carries two separate facts: whether a vehicle is standing in it,
-// and whether a booking is holding it. The backend combines them into one
-// display state, and this screen explains that distinction in words as
-// well as colour.
+// It uses the same top-down view as the dashboard, so an operator learns one
+// map. The difference is the panel: here it is always present, and it is
+// where a bay's full story lives - who is in it, what they owe so far, what it
+// is booked for, and the next thing that can be done with it.
 
 import { api } from '../api.js';
 import {
   escapeHtml, money, duration, dateTime, vehicleTypeLabel,
 } from '../format.js';
 import {
-  icon, badge, emptyState, errorState, loadingState,
-  slotButton, slotLegend, toast, freshnessBar, startFreshness, wireSlotGridKeys,
+  icon, badge, emptyState, errorState, toast, freshnessBar, startFreshness,
 } from '../ui.js';
-
-const STATE_TEXT = {
-  AVAILABLE: 'Available',
-  OCCUPIED: 'Occupied',
-  RESERVED: 'Reserved',
-};
+import { createFacility, parseSlotId } from '../facility.js';
 
 export async function render(container, ctx) {
-  let data = null;
-  let selectedId = ctx.params.focus || null;
-  let filterState = '';
-  let filterType = '';
-  let searchText = '';
-  let filterTimer = null;
-
   container.innerHTML = `
-    <div class="page-head">
-      <div class="page-head__text">
-        <h1>Parking Slots</h1>
-        <p>View and manage all parking slots</p>
+    <div class="console slots-console">
+      <div class="page-head">
+        <div class="page-head__text">
+          <h1>Parking Slots</h1>
+          <p>Every bay in the car park. Select one to see what is in it.</p>
+        </div>
+        <div class="page-head__actions">
+          ${freshnessBar('slotsFreshness')}
+          <button class="btn btn--ghost" data-navigate="settings">${icon('#i-settings')}Configure bays</button>
+        </div>
       </div>
-      <div class="page-head__actions">
-        ${freshnessBar('slotsFreshness')}
-        <button class="btn btn--ghost" data-navigate="settings">${icon('#i-settings')}Configure slots</button>
-      </div>
-    </div>
-    <div id="slotsBody">${loadingState(6)}</div>`;
 
-  const body = container.querySelector('#slotsBody');
+      <div class="ops">
+        <section class="workspace" id="slotsMap" aria-label="Car park map"></section>
+        <aside class="details-panel" aria-label="Bay details">
+          <section class="rail-card" id="slotDetail" aria-live="polite">${placeholder()}</section>
+        </aside>
+      </div>
+    </div>`;
+
+  const detail = container.querySelector('#slotDetail');
   const freshness = startFreshness(container, 'slotsFreshness', () => load());
+  const focusId = ctx.params.focus ? String(ctx.params.focus).toUpperCase() : null;
+  let loadedOnce = false;
+
+  const facility = createFacility(container.querySelector('#slotsMap'), {
+    persistKey: 'slots',
+    selectedId: focusId,
+    onSelect: (slot) => {
+      detail.innerHTML = slot ? detailHtml(slot) : placeholder();
+      detail.querySelector('[data-clear-bay]')?.addEventListener('click', () => facility.select(null));
+    },
+  });
 
   async function load() {
     freshness.markLoading();
     try {
-      data = await api.slots();
-      draw();
+      const data = await api.slots();
+      facility.update(data);
       freshness.markUpdated();
-    } catch (problem) {
-      body.innerHTML = errorState(problem.message);
-      body.querySelector('[data-retry]')?.addEventListener('click', load);
-    }
-  }
 
-  function visibleSlots() {
-    const needle = searchText.trim().toUpperCase();
-    return data.slots.filter((slot) => {
-      if (filterState && slot.displayState !== filterState) return false;
-      if (filterType && slot.supportedVehicleType !== filterType) return false;
-      if (needle) {
-        const inId = slot.slotId.toUpperCase().includes(needle);
-        const inPlate = slot.ticket
-          ? slot.ticket.registrationNumber.toUpperCase().includes(needle)
-          : false;
-        if (!inId && !inPlate) return false;
+      if (!loadedOnce) {
+        loadedOnce = true;
+        if (focusId && !data.slots.some((slot) => slot.slotId === focusId)) {
+          toast('Bay not found', `There is no bay called ${focusId}.`, 'warn');
+        }
       }
-      return true;
-    });
-  }
-
-  // Which field the operator is in, and where their cursor sits. Replacing
-  // the markup destroys both, and this screen redraws on a timer as well as
-  // on every keystroke, so the position is carried across by hand.
-  function captureFocus() {
-    const active = document.activeElement;
-    if (!active || !active.id || !body.contains(active)) {
-      return null;
+    } catch (problem) {
+      if (!loadedOnce) {
+        detail.innerHTML = errorState(problem.message);
+        detail.querySelector('[data-retry]')?.addEventListener('click', load);
+      }
+      freshness.markUpdated();
     }
-    let caret = null;
-    try {
-      caret = active.selectionStart;
-    } catch (unsupported) {
-      caret = null; // some input types refuse to report a selection
-    }
-    return { id: active.id, caret };
-  }
-
-  function restoreFocus(saved) {
-    if (!saved) return;
-    const again = body.querySelector(`#${saved.id}`);
-    if (!again) return;
-    again.focus();
-    if (saved.caret === null) return;
-    try {
-      again.setSelectionRange(saved.caret, saved.caret);
-    } catch (unsupported) { /* nothing to restore on this input type */ }
-  }
-
-  function draw() {
-    const shown = visibleSlots();
-    const summary = data.summary;
-    const focused = captureFocus();
-
-    body.innerHTML = `
-      <div class="layout-split">
-        <section class="card">
-          <div class="card__head">
-            <div>
-              <h2>All Slots</h2>
-              <p>${summary.availableSlots} available &middot; ${summary.occupiedSlots} occupied
-                 &middot; ${summary.reservedSlots} reserved</p>
-            </div>
-            <div class="card__head-actions">${slotLegend()}</div>
-          </div>
-
-          <div class="card__body" style="border-bottom:1px solid var(--border)">
-            <div class="search-row">
-              <span class="search-box">
-                ${icon('#i-search')}
-                <input class="input" id="slotSearch" placeholder="Search slot ID or vehicle"
-                       value="${escapeHtml(searchText)}" autocomplete="off">
-              </span>
-              <select class="select" id="stateFilter" style="width:auto;min-width:150px"
-                      aria-label="Filter by status">
-                <option value="">All statuses</option>
-                <option value="AVAILABLE">Available</option>
-                <option value="OCCUPIED">Occupied</option>
-                <option value="RESERVED">Reserved</option>
-              </select>
-              <select class="select" id="typeFilter" style="width:auto;min-width:150px"
-                      aria-label="Filter by vehicle type">
-                <option value="">All vehicle types</option>
-                <option value="CAR">Car</option>
-                <option value="BIKE">Bike</option>
-                <option value="SUV">SUV</option>
-              </select>
-              ${filterState || filterType || searchText
-                ? '<button class="btn btn--subtle btn--sm" id="clearFilters">Clear</button>' : ''}
-            </div>
-          </div>
-
-          <div class="card__body">
-            ${shown.length === 0
-              ? emptyState({
-                  title: data.slots.length === 0 ? 'No slots configured' : 'No slots match',
-                  text: data.slots.length === 0
-                    ? 'Add parking slots on the Settings screen.'
-                    : 'Try a different search or clear the filters.',
-                  iconId: '#i-grid',
-                })
-              : `<div class="slot-grid">${shown.map((slot) => slotButton(slot, selectedId)).join('')}</div>
-                 <p style="margin-top:14px;font-size:12px;color:var(--text-muted)">
-                   Showing ${shown.length} of ${data.slots.length} slots.
-                 </p>`}
-          </div>
-        </section>
-
-        <section class="card" id="detailCard">
-          <div class="card__head"><div><h2>Slot Details</h2></div></div>
-          <div class="card__body" id="detailBody">${detailView()}</div>
-        </section>
-      </div>`;
-
-    body.querySelector('#stateFilter').value = filterState;
-    body.querySelector('#typeFilter').value = filterType;
-    wire();
-    restoreFocus(focused);
-  }
-
-  function detailView() {
-    if (!selectedId) {
-      return emptyState({
-        title: 'Select a slot',
-        text: 'Click any slot in the grid to see what is parked there or what is booked for it.',
-        iconId: '#i-grid',
-      });
-    }
-
-    const slot = data.slots.find((candidate) => candidate.slotId === selectedId);
-    if (!slot) {
-      return emptyState({
-        title: `Slot ${selectedId} not found`,
-        text: 'It may have been removed on the Settings screen.',
-        iconId: '#i-alert',
-      });
-    }
-
-    const rows = [
-      ['Slot ID', slot.slotId],
-      ['Accepts', vehicleTypeLabel(slot.supportedVehicleType)],
-      ['Status', STATE_TEXT[slot.displayState]],
-    ];
-
-    if (slot.ticket) {
-      rows.push(
-        ['Vehicle No.', slot.ticket.registrationNumber],
-        ['Vehicle type', vehicleTypeLabel(slot.ticket.vehicleType)],
-        ['Ticket ID', slot.ticket.ticketId],
-        ['Entry time', dateTime(slot.ticket.entryTime)],
-        ['Duration', duration(slot.ticket.elapsedMinutes)],
-        ['Fee so far', `${money(slot.ticket.estimatedFeePaise)} (estimate)`],
-      );
-      if (slot.ticket.ownerName) rows.splice(4, 0, ['Owner', slot.ticket.ownerName]);
-    }
-
-    if (slot.reservation) {
-      rows.push(
-        ['Reservation ID', slot.reservation.reservationId],
-        ['Reserved for', slot.reservation.registrationNumber],
-        ['Booked from', dateTime(slot.reservation.startTime)],
-        ['Booked until', dateTime(slot.reservation.endTime)],
-      );
-    }
-
-    const detail = rows
-      .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
-      .join('');
-
-    // The distinction the brief asks for, said plainly rather than implied.
-    let note = '';
-    if (slot.displayState === 'RESERVED') {
-      note = `<p style="margin-top:14px;font-size:12.5px;color:var(--text-muted)">
-                This slot is physically empty but is being kept for an upcoming
-                reservation, so walk-in vehicles are not sent here.
-              </p>`;
-    } else if (slot.displayState === 'OCCUPIED' && slot.reservation) {
-      note = `<p style="margin-top:14px;font-size:12.5px;color:var(--text-muted)">
-                A vehicle is parked here and another booking is waiting for this slot.
-              </p>`;
-    }
-
-    const actions = [];
-    if (slot.ticket) {
-      actions.push(`<button class="btn btn--primary btn--sm"
-        data-navigate="exit?query=${encodeURIComponent(slot.ticket.ticketId)}">
-        ${icon('#i-exit')}Process exit</button>`);
-    }
-    if (slot.reservation) {
-      actions.push(`<button class="btn btn--ghost btn--sm" data-navigate="reservations">
-        ${icon('#i-calendar')}Open reservations</button>`);
-    }
-
-    return `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <span style="font-size:24px;font-weight:700">${escapeHtml(slot.slotId)}</span>
-        ${badge(slot.displayState)}
-      </div>
-      <dl class="detail-list">${detail}</dl>
-      ${note}
-      ${actions.length ? `<div class="form-actions" style="margin-top:16px">${actions.join('')}</div>` : ''}`;
-  }
-
-  function wire() {
-    body.querySelectorAll('[data-slot]').forEach((button) => {
-      button.addEventListener('click', () => {
-        selectedId = button.dataset.slot;
-        draw();
-        body.querySelector('#detailCard')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      });
-    });
-
-    // One tab stop for the grid; the arrow keys move within it.
-    wireSlotGridKeys(body.querySelector('.slot-grid'), { onActivate: (slotId) => {
-      selectedId = slotId;
-      draw();
-    } });
-
-    const search = body.querySelector('#slotSearch');
-    search?.addEventListener('input', () => {
-      searchText = search.value;
-      // Redrawing on every keystroke rebuilds every tile in the grid, which is
-      // 500 of them in the largest supported layout. A short pause means one
-      // redraw per burst of typing instead of one per character; draw() then
-      // carries the cursor across the redraw itself.
-      clearTimeout(filterTimer);
-      filterTimer = setTimeout(draw, 120);
-    });
-
-    body.querySelector('#stateFilter')?.addEventListener('change', (event) => {
-      filterState = event.target.value;
-      draw();
-    });
-    body.querySelector('#typeFilter')?.addEventListener('change', (event) => {
-      filterType = event.target.value;
-      draw();
-    });
-    body.querySelector('#clearFilters')?.addEventListener('click', () => {
-      filterState = '';
-      filterType = '';
-      searchText = '';
-      draw();
-    });
   }
 
   await load();
 
-  if (selectedId && data && !data.slots.some((slot) => slot.slotId === selectedId)) {
-    toast('Slot not found', `There is no slot called ${selectedId}.`, 'warn');
-  }
-
   const timer = setInterval(load, 60000);
   return () => {
     clearInterval(timer);
-    clearTimeout(filterTimer);
     freshness.stop();
+    facility.destroy();
   };
+}
+
+function placeholder() {
+  return `<div class="rail-card__body">${emptyState({
+    title: 'Select a bay',
+    text: 'Click a bay on the map, or use the arrow keys, to see who is parked there and what it is booked for.',
+    iconId: '#i-grid',
+  })}</div>`;
+}
+
+function detailHtml(slot) {
+  const state = slot.displayState;
+  const { prefix } = parseSlotId(slot.slotId);
+
+  const rows = [
+    ['Row', prefix ? `Row ${prefix}` : 'Numbered bays'],
+    ['Takes', vehicleTypeLabel(slot.supportedVehicleType)],
+  ];
+
+  if (slot.ticket) {
+    rows.push(
+      ['Vehicle', slot.ticket.registrationNumber],
+      ...(slot.ticket.ownerName ? [['Owner', slot.ticket.ownerName]] : []),
+      ['Ticket', slot.ticket.ticketId],
+      ['Entered', dateTime(slot.ticket.entryTime)],
+      ['Parked for', duration(slot.ticket.elapsedMinutes)],
+      ['Rate', `${money(slot.ticket.hourlyRatePaise)} per started hour`],
+      ['Fee so far', `${money(slot.ticket.estimatedFeePaise)} (estimate)`],
+    );
+  }
+  if (slot.reservation) {
+    rows.push(
+      ['Booked by', slot.reservation.registrationNumber],
+      ['From', dateTime(slot.reservation.startTime)],
+      ['Until', dateTime(slot.reservation.endTime)],
+    );
+  }
+
+  const list = rows
+    .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+    .join('');
+
+  // The distinction the brief asks for, said in words as well as colour.
+  let note = '';
+  if (state === 'RESERVED') {
+    note = 'Physically empty, but held for the booking above, so walk-in vehicles are not sent here.';
+  } else if (state === 'OCCUPIED' && slot.reservation) {
+    note = 'A vehicle is parked here and another booking is waiting for this bay.';
+  } else if (state === 'AVAILABLE') {
+    note = `Free now. The next ${vehicleTypeLabel(slot.supportedVehicleType).toLowerCase()} to check in may be sent here.`;
+  }
+
+  const actions = [];
+  if (slot.ticket) {
+    actions.push(`<button class="btn btn--primary btn--sm"
+      data-navigate="exit?query=${encodeURIComponent(slot.ticket.ticketId)}">${icon('#i-exit')}Process exit</button>`);
+    actions.push(`<button class="btn btn--ghost btn--sm"
+      data-navigate="history?search=${encodeURIComponent(slot.ticket.ticketId)}">${icon('#i-history')}View ticket</button>`);
+  }
+  if (state === 'AVAILABLE') {
+    actions.push(`<button class="btn btn--primary btn--sm" data-navigate="entry">${icon('#i-entry')}Check in a vehicle</button>`);
+    actions.push(`<button class="btn btn--ghost btn--sm"
+      data-navigate="reservations?slot=${encodeURIComponent(slot.slotId)}&type=${encodeURIComponent(slot.supportedVehicleType)}">${icon('#i-calendar')}Reserve this bay</button>`);
+  }
+  if (slot.reservation) {
+    actions.push(`<button class="btn btn--ghost btn--sm" data-navigate="reservations">${icon('#i-calendar')}Open reservations</button>`);
+  }
+
+  return `
+    <div class="bay-card bay-card--${state.toLowerCase()}" style="border-radius:inherit">
+      <div class="rail-card__head">
+        <div class="bay-card__title">
+          <strong>${escapeHtml(slot.slotId)}</strong>
+          ${badge(state)}
+        </div>
+        <button class="icon-btn btn--sm" data-clear-bay aria-label="Clear selection">${icon('#i-close')}</button>
+      </div>
+      <div class="rail-card__body">
+        <dl class="detail-list">${list}</dl>
+        ${note ? `<p class="shortcut__hint" style="margin-top:12px;font-size:12px">${escapeHtml(note)}</p>` : ''}
+        ${actions.length ? `<div class="form-actions" style="margin-top:14px">${actions.join('')}</div>` : ''}
+      </div>
+    </div>`;
 }

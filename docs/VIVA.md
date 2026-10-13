@@ -160,6 +160,27 @@ that the booking is marked `EXPIRED` and releases its hold, so the slot becomes
 available again. The sweep runs at the start of every request, so the state is
 never stale when anyone looks at it.
 
+**Q. The dashboard draws a map of the car park. Where do the positions come from?**
+
+From the slot ids, and nowhere else. A slot in the data is only an id, the
+vehicle type it takes, and whether something is parked in it - there are no
+coordinates, floors or zones stored anywhere. So `facility.js` derives the
+layout: the leading letters of an id name its row (`A07` is in row A), the
+number orders it within the row, rows are paired to face each other across a
+driving aisle, and a row longer than sixteen wraps onto another strip. Any
+valid id works, including ones with no letters or no number. I deliberately did
+not add floors to the map, because that would mean drawing something the data
+does not contain; it would need a real `floor` field on the slot first.
+
+**Q. Why is free shown in teal rather than green?**
+
+Because I checked. The usual green-for-free and red-for-taken pair measured a
+colour difference of 2.7 for someone with deuteranopia - effectively the same
+colour - and that is the most common form of colour blindness. Teal keeps the
+go/stop reading and separates by 13.1. Each bay also says its state another
+way: a parked vehicle is drawn in an occupied bay, a reserved one has a dashed
+outline and a clock, and every bay has a spoken label.
+
 **Q. Why is the waiting queue a `std::vector` and not a `std::queue`?**
 
 Because a strict FIFO cannot do the two things this queue needs. First, if a
@@ -275,7 +296,7 @@ trusted — the exit request sends only the ticket ID.
 
 **Q. How did you test it?**
 
-262 checks in `tests/test_main.cpp`, run with `test.bat`. They drive
+269 checks in `tests/test_main.cpp`, run with `test.bat`. They drive
 `ParkingLot` directly — no browser, no HTTP — covering billing boundaries,
 entry and exit, duplicate detection, a full facility, reservation conflicts and
 expiry, queue ordering and compatibility scanning, settings validation, reports,

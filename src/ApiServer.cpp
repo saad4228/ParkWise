@@ -420,6 +420,21 @@ void ApiServer::handleDashboard(const httplib::Request&, httplib::Response& resp
         }
     }
 
+    // Arrivals and departures per hour of today, counted here rather than in
+    // the browser so the chart cannot drift from the records it describes.
+    const Timestamp dayStart = TimeUtil::startOfLocalDay(now);
+    const Timestamp dayEnd = TimeUtil::startOfNextLocalDay(now);
+    const std::vector<HourlyTraffic> traffic =
+        ReportService::buildHourlyTraffic(parkingLot_, dayStart, dayEnd);
+    body["hourlyTraffic"] = Json::array();
+    for (const HourlyTraffic& hour : traffic) {
+        Json row;
+        row["hour"] = hour.hour;
+        row["entries"] = hour.entries;
+        row["exits"] = hour.exits;
+        body["hourlyTraffic"].push_back(row);
+    }
+
     sendJson(response, 200, body);
 }
 

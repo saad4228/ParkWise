@@ -1011,6 +1011,39 @@ void testReportsAndCsv() {
     checkEqual(static_cast<long long>(ReportService::filterHistory(lot, noMatch).size()), 0,
                "a search with no matches returns nothing");
 
+    // Hourly traffic: 24 fixed rows, a session counted as an arrival in the
+    // hour it entered and a departure in the hour it left.
+    const std::vector<HourlyTraffic> traffic = ReportService::buildHourlyTraffic(lot, 0, 0);
+    checkEqual(static_cast<long long>(traffic.size()), 24, "hourly traffic always has 24 rows");
+
+    long long totalEntries = 0;
+    long long totalExits = 0;
+    for (const HourlyTraffic& hour : traffic) {
+        totalEntries += hour.entries;
+        totalExits += hour.exits;
+    }
+    checkEqual(totalEntries, 2, "both sessions are counted as arrivals");
+    checkEqual(totalExits, 1, "only the finished session is counted as a departure");
+
+    const int entryHour = TimeUtil::localHourOf(kBaseTime);
+    checkEqual(traffic[static_cast<std::size_t>(entryHour)].entries, 1,
+               "the car's arrival lands in the hour it entered");
+
+    const ReportSummary wholeDay = ReportService::buildSummary(lot, 0, 0);
+    checkEqual(traffic[static_cast<std::size_t>(wholeDay.peakEntryHour)].entries,
+               wholeDay.peakEntryHourCount,
+               "the busiest hour agrees with the summary's peak hour");
+
+    const std::vector<HourlyTraffic> noWindow =
+        ReportService::buildHourlyTraffic(lot, kBaseTime - 10 * kHour, kBaseTime - 5 * kHour);
+    long long outsideEntries = 0;
+    for (const HourlyTraffic& hour : noWindow) {
+        outsideEntries += hour.entries;
+    }
+    checkEqual(static_cast<long long>(noWindow.size()), 24,
+               "an empty window still reports 24 rows");
+    checkEqual(outsideEntries, 0, "a window with nothing in it counts no arrivals");
+
     // CSV escaping.
     checkEqualText(ReportService::escapeCsvField("plain"), "plain", "a plain field is untouched");
     checkEqualText(ReportService::escapeCsvField("has,comma"), "\"has,comma\"",

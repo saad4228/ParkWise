@@ -103,6 +103,30 @@ ReportSummary buildSummary(const ParkingLot& lot, Timestamp fromTime, Timestamp 
     return summary;
 }
 
+std::vector<HourlyTraffic> buildHourlyTraffic(const ParkingLot& lot,
+                                              Timestamp fromInclusive,
+                                              Timestamp toExclusive) {
+    std::vector<HourlyTraffic> hours(24);
+    for (int hour = 0; hour < 24; hour++) {
+        hours[static_cast<std::size_t>(hour)].hour = hour;
+    }
+
+    for (const ParkingTicket& ticket : lot.tickets()) {
+        if (isWithin(ticket.entryTime(), fromInclusive, toExclusive)) {
+            const int hour = TimeUtil::localHourOf(ticket.entryTime());
+            hours[static_cast<std::size_t>(hour)].entries++;
+        }
+        // A vehicle that is still parked has not left, so it is not a
+        // departure in any hour yet.
+        if (ticket.status() == TicketStatus::COMPLETED &&
+            isWithin(ticket.exitTime(), fromInclusive, toExclusive)) {
+            const int hour = TimeUtil::localHourOf(ticket.exitTime());
+            hours[static_cast<std::size_t>(hour)].exits++;
+        }
+    }
+    return hours;
+}
+
 std::vector<const ParkingTicket*> filterHistory(const ParkingLot& lot,
                                                 const HistoryFilter& filter) {
     const std::string search = toUpperCase(filter.searchText);

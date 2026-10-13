@@ -107,6 +107,13 @@ export async function render(container, ctx) {
   const statusSelect = container.querySelector('#resStatusFilter');
   statusSelect.value = statusFilter;
 
+  // Arriving from "Reserve this bay" on the map: start with that bay's
+  // vehicle type, so its own id is among the slot choices.
+  const wantedType = String(ctx.params.type || '').toUpperCase();
+  if (['CAR', 'BIKE', 'SUV'].includes(wantedType)) {
+    form.vehicleType.value = wantedType;
+  }
+
   // Sensible defaults: the next whole hour, for one hour.
   function primeTimes() {
     const now = Math.floor(Date.now() / 1000);
@@ -326,6 +333,20 @@ export async function render(container, ctx) {
   });
 
   await Promise.all([loadSlotChoices(), loadList()]);
+
+  // ...and then pick the bay itself, if it can still be booked.
+  const wantedSlot = String(ctx.params.slot || '').toUpperCase();
+  if (wantedSlot) {
+    const offered = [...form.preferredSlotId.options].some((option) => option.value === wantedSlot);
+    if (offered) {
+      form.preferredSlotId.value = wantedSlot;
+      toast('Bay chosen', `Booking bay ${wantedSlot}. Enter the registration and the times.`, 'ok');
+    } else {
+      toast('That bay cannot be booked right now',
+            `${wantedSlot} is no longer free, so ParkWise will choose a bay instead.`, 'warn');
+    }
+    form.registrationNumber.focus();
+  }
 }
 
 // Releasing a held slot can let a waiting vehicle straight in, which changes

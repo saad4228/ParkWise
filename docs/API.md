@@ -82,12 +82,23 @@ Every failure uses the same shape:
       "source": "WALK_IN", "feePaise": 30000 }
   ],
   "upcomingReservations": [ /* reservation views */ ],
-  "queue": [ /* waiting queue request views */ ]
+  "queue": [ /* waiting queue request views */ ],
+  "hourlyTraffic": [
+    { "hour": 0, "entries": 0, "exits": 0 },
+    { "hour": 9, "entries": 7, "exits": 2 }
+    /* ...always 24 rows, hour 0 to 23 */
+  ]
 }
 ```
 
 `recentActivity` holds at most 8 entries, newest first. An `ENTRY` has
 `feePaise: null`.
+
+`hourlyTraffic` covers today in the server's local time and always has 24
+rows, so the chart keeps a fixed shape on a quiet day. A session counts as an
+arrival in the hour it entered and as a departure in the hour it left, so one
+session can appear in two rows. A vehicle still parked is not a departure.
+`upcomingReservations` holds at most 5; five means "five or more".
 
 ### `GET /slots`
 

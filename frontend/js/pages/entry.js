@@ -2,6 +2,12 @@
 //
 // The browser never picks the slot. It sends what the operator typed and
 // shows whatever the server decides, including a refusal.
+//
+// Two things here are about speed at the barrier. The vehicle type is three
+// tiles rather than a dropdown, one click or one arrow key away, and each
+// tile says how many bays of that type are free, so "the bike bays are full"
+// is visible before a plate is typed. And after a check-in the allocated bay
+// is shown on its row of the map, the same picture as the dashboard.
 
 import { api, ApiError } from '../api.js';
 import { escapeHtml, vehicleTypeLabel } from '../format.js';
@@ -9,6 +15,13 @@ import {
   icon, fieldError, withBusyButton, toast, toastError, emptyState, confirmDialog,
 } from '../ui.js';
 import { ticketPanel, printTicket } from '../ticket.js';
+import { rowPreviewHtml } from '../facility.js';
+
+const TYPES = [
+  { value: 'CAR', label: 'Car', symbol: '#v-car' },
+  { value: 'BIKE', label: 'Bike', symbol: '#v-bike' },
+  { value: 'SUV', label: 'SUV', symbol: '#v-suv' },
+];
 
 export async function render(container, ctx) {
   container.innerHTML = `
@@ -34,16 +47,24 @@ export async function render(container, ctx) {
               <span class="field__hint">Spaces and dashes are tidied up automatically.</span>
             </div>
 
-            <div class="field" data-field="vehicleType">
-              <label class="field__label" for="vehicleType">
+            <fieldset class="field type-picker" data-field="vehicleType">
+              <legend class="field__label">
                 Vehicle Type <span class="req" aria-hidden="true">*</span>
-              </label>
-              <select class="select" id="vehicleType" name="vehicleType" required>
-                <option value="CAR">Car</option>
-                <option value="BIKE">Bike</option>
-                <option value="SUV">SUV</option>
-              </select>
-            </div>
+              </legend>
+              <div class="type-picker__options">
+                ${TYPES.map((type, index) => `
+                  <label class="type-option">
+                    <input type="radio" name="vehicleType" value="${type.value}" ${index === 0 ? 'checked' : ''}>
+                    <span class="type-option__box">
+                      <svg class="type-option__vehicle" aria-hidden="true"><use href="${type.symbol}"/></svg>
+                      <span class="type-option__text">
+                        <span class="type-option__name">${type.label}</span>
+                        <span class="type-option__free" data-free="${type.value}">&nbsp;</span>
+                      </span>
+                    </span>
+                  </label>`).join('')}
+              </div>
+            </fieldset>
 
             <div class="form-row">
               <div class="field" data-field="ownerName">
@@ -73,8 +94,8 @@ export async function render(container, ctx) {
         <div class="card__head"><div><h2>Entry Preview</h2></div></div>
         <div class="card__body" id="previewBody">
           ${emptyState({
-            title: 'No vehicle registered yet',
-            text: 'A slot is allocated automatically based on availability and vehicle type.',
+            title: 'No vehicle checked in yet',
+            text: 'ParkWise picks the bay. Once it has, you will see it here on its row of the map.',
             iconId: '#i-car',
           })}
         </div>
@@ -88,6 +109,27 @@ export async function render(container, ctx) {
   container.querySelector('#resetEntry').addEventListener('click', () => {
     clearFieldErrors(form);
   });
+
+  // How many bays of each type are free right now, from the server's own
+  // view of every bay. It is a hint for the operator, not a decision: the
+  // server still allocates, and still refuses if the picture has changed.
+  async function refreshFreeCounts() {
+    try {
+      const data = await api.slots();
+      TYPES.forEach((type) => {
+        const free = data.slots.filter((slot) =>
+          slot.supportedVehicleType === type.value && slot.displayState === 'AVAILABLE').length;
+        const label = container.querySelector(`[data-free="${type.value}"]`);
+        if (!label) return;
+        label.textContent = free === 0 ? 'Full' : `${free} free`;
+        label.classList.toggle('is-full', free === 0);
+      });
+      return data;
+    } catch (problem) {
+      return null; // the tiles still work without the counts
+    }
+  }
+  refreshFreeCounts();
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -112,13 +154,19 @@ export async function render(container, ctx) {
       try {
         const result = await api.vehicleEntry(values);
 
+        // Fresh bay data both updates the free counts and draws the row the
+        // vehicle was sent to.
+        const latest = await refreshFreeCounts();
         previewBody.innerHTML = `
-          <p style="margin-bottom:14px;color:var(--text-muted)">
-            Allocated slot <strong style="color:var(--text)">${escapeHtml(result.slotId)}</strong>
-            for ${escapeHtml(vehicleTypeLabel(result.ticket.vehicleType))}
-            ${escapeHtml(result.registrationNumber)}.
+          <p class="entry-allocated">
+            Bay <strong>${escapeHtml(result.slotId)}</strong>
+            &middot; ${escapeHtml(vehicleTypeLabel(result.ticket.vehicleType))}
+            ${escapeHtml(result.registrationNumber)}
           </p>
+          ${latest ? rowPreviewHtml(latest.slots, result.slotId) : ''}
           ${ticketPanel(result.ticket)}`;
+        previewBody.querySelector('.lot-preview .is-selected')
+          ?.scrollIntoView({ block: 'nearest', inline: 'center' });
         wirePrint(previewBody, result.ticket);
 
         toast('Vehicle checked in',

@@ -14,21 +14,6 @@ export function icon(id, className = '') {
   return `<svg class="${className}" aria-hidden="true"><use href="${id}"/></svg>`;
 }
 
-/**
- * A thin "share of the whole" bar. `percent` is 0-100.
- *
- * It carries an aria-label because the bar itself is decoration: the same
- * figure is always written out beside it.
- */
-export function meter(percent, label) {
-  const clamped = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
-  const tone = clamped >= 100 ? ' meter__fill--full' : clamped >= 80 ? ' meter__fill--busy' : '';
-  return `
-    <div class="meter" role="img" aria-label="${escapeHtml(label || `${clamped}%`)}">
-      <div class="meter__fill${tone}" style="width:${clamped}%"></div>
-    </div>`;
-}
-
 export function statCard({ label, value, hint, iconId, tone = 'info', href, extraHtml = '' }) {
   const inner = `
     <span class="stat__icon stat__icon--${tone}">${icon(iconId)}</span>
@@ -249,105 +234,8 @@ export async function withBusyButton(button, work) {
 }
 
 // ---------------------------------------------------------------------------
-// Slot grid
+// Slot legend
 // ---------------------------------------------------------------------------
-
-const SLOT_CLASS = {
-  AVAILABLE: 'slot--available',
-  OCCUPIED: 'slot--occupied',
-  RESERVED: 'slot--reserved',
-};
-
-// Each state gets its own glyph, so the three colours are never the only
-// thing telling them apart.
-const SLOT_ICON = {
-  AVAILABLE: '#i-free',
-  OCCUPIED: null, // uses the parked vehicle's own icon instead
-  RESERVED: '#i-clock',
-};
-
-/**
- * Makes a slot grid behave like one control instead of fifty.
- *
- * A fifty-slot car park put fifty stops in the tab order, so reaching
- * anything after the grid meant fifty presses. The grid is now a single stop
- * and the arrow keys move within it, which is how a grid of choices is
- * expected to work. Home and End jump to the ends.
- *
- * Call this after the grid markup is written, and again after any redraw.
- */
-export function wireSlotGridKeys(grid, { onActivate } = {}) {
-  if (!grid) return;
-  const tiles = Array.from(grid.querySelectorAll('[data-slot]'));
-  if (tiles.length === 0) return;
-
-  // Only one tile is reachable by Tab; the rest are reached with the arrows.
-  const chosen = grid.querySelector('[data-slot].is-selected') || tiles[0];
-  tiles.forEach((tile) => { tile.tabIndex = tile === chosen ? 0 : -1; });
-
-  // How many tiles fit on a row, so Up and Down move a visual row at a time.
-  const columnsOf = () => {
-    const style = window.getComputedStyle(grid);
-    const columns = style.gridTemplateColumns.split(' ').filter(Boolean).length;
-    return Math.max(1, columns);
-  };
-
-  const moveTo = (index) => {
-    const target = tiles[Math.max(0, Math.min(tiles.length - 1, index))];
-    if (!target) return;
-    tiles.forEach((tile) => { tile.tabIndex = -1; });
-    target.tabIndex = 0;
-    target.focus();
-  };
-
-  grid.addEventListener('keydown', (event) => {
-    const current = tiles.indexOf(document.activeElement);
-    if (current === -1) return;
-
-    const columns = columnsOf();
-    const jumps = {
-      ArrowRight: current + 1,
-      ArrowLeft: current - 1,
-      ArrowDown: current + columns,
-      ArrowUp: current - columns,
-      Home: 0,
-      End: tiles.length - 1,
-    };
-
-    if (event.key in jumps) {
-      event.preventDefault();
-      moveTo(jumps[event.key]);
-      return;
-    }
-    // Space would otherwise scroll the page instead of choosing the slot.
-    if (event.key === ' ' && typeof onActivate === 'function') {
-      event.preventDefault();
-      onActivate(document.activeElement.dataset.slot);
-    }
-  });
-}
-
-export function slotButton(slot, selectedId) {
-  const state = slot.displayState;
-  const label = BADGE_LABELS[state] || state;
-  const iconId = state === 'OCCUPIED'
-    ? vehicleIconId(slot.ticket ? slot.ticket.vehicleType : slot.supportedVehicleType)
-    : SLOT_ICON[state];
-
-  const description = state === 'OCCUPIED' && slot.ticket
-    ? `${slot.slotId}, occupied by ${slot.ticket.registrationNumber}`
-    : `${slot.slotId}, ${label.toLowerCase()}, for ${vehicleTypeLabel(slot.supportedVehicleType)}`;
-
-  return `
-    <button type="button"
-            class="slot ${SLOT_CLASS[state] || ''} ${selectedId === slot.slotId ? 'is-selected' : ''}"
-            data-slot="${escapeHtml(slot.slotId)}"
-            title="${escapeHtml(description)}"
-            aria-label="${escapeHtml(description)}">
-      <span>${escapeHtml(slot.slotId)}</span>
-      ${icon(iconId || '#i-free', 'slot__icon')}
-    </button>`;
-}
 
 export function slotLegend() {
   return `

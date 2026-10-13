@@ -29,6 +29,14 @@ struct VehicleTypeCount {
     int count = 0;
 };
 
+// Arrivals and departures in one hour of the local day, for the traffic chart
+// on the dashboard.
+struct HourlyTraffic {
+    int hour = 0;      // 0 to 23, local time
+    int entries = 0;
+    int exits = 0;
+};
+
 struct ReportSummary {
     Timestamp fromTime = 0;
     Timestamp toTime = 0;
@@ -59,6 +67,13 @@ struct ReportSummary {
 namespace ReportService {
 
 ReportSummary buildSummary(const ParkingLot& lot, Timestamp fromTime, Timestamp toTime);
+
+// Always 24 rows, hour 0 to 23, so the chart has a fixed shape whether or not
+// anything happened. A session is counted as an arrival in the hour it entered
+// and as a departure in the hour it left, so one session can appear twice.
+std::vector<HourlyTraffic> buildHourlyTraffic(const ParkingLot& lot,
+                                              Timestamp fromInclusive,
+                                              Timestamp toExclusive);
 
 // Newest first, so the History table shows recent activity at the top.
 std::vector<const ParkingTicket*> filterHistory(const ParkingLot& lot,

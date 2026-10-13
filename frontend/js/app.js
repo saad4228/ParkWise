@@ -224,12 +224,47 @@ document.addEventListener('keydown', (event) => {
 
 // --- connection indicator -------------------------------------------------
 
-const statusText = document.getElementById('sidebarStatusText');
-const statusDot = document.querySelector('#sidebarStatus .dot');
+const livePill = document.getElementById('livePill');
+const livePillText = document.getElementById('livePillText');
 
 onConnectionChange((connected) => {
-  statusText.textContent = connected ? 'Connected' : 'Server unreachable';
-  statusDot.className = `dot ${connected ? 'dot--ok' : 'dot--busy'}`;
+  livePill.classList.toggle('is-offline', !connected);
+  livePillText.textContent = connected ? 'Live' : 'Offline';
+  livePill.title = connected
+    ? 'Connected to the ParkWise server'
+    : 'The ParkWise server cannot be reached. Figures on screen may be out of date.';
+});
+
+// --- collapsible menu ------------------------------------------------------
+
+// The menu can shrink to a strip of icons so the parking map gets the width.
+// The choice is remembered. Below the tablet breakpoint the menu is a
+// slide-over drawer instead, and this setting does not apply.
+const COLLAPSE_KEY = 'parkwise.navCollapsed';
+const collapseButton = document.getElementById('sidebarCollapse');
+
+function applyCollapsed(collapsed) {
+  document.documentElement.classList.toggle('nav-collapsed', collapsed);
+  collapseButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  collapseButton.setAttribute('aria-label', collapsed ? 'Expand menu' : 'Collapse menu');
+}
+
+function loadCollapsed() {
+  try {
+    const stored = localStorage.getItem(COLLAPSE_KEY);
+    if (stored === 'true' || stored === 'false') return stored === 'true';
+  } catch (blocked) { /* private mode: fall through to the default */ }
+  return true; // slim by default, so the facility view has room
+}
+
+applyCollapsed(loadCollapsed());
+
+collapseButton.addEventListener('click', () => {
+  const next = !document.documentElement.classList.contains('nav-collapsed');
+  applyCollapsed(next);
+  try { localStorage.setItem(COLLAPSE_KEY, String(next)); } catch (blocked) { /* ignore */ }
+  // The map sizes itself to its container, so tell it the room changed.
+  window.dispatchEvent(new Event('resize'));
 });
 
 // --- waiting-queue badge --------------------------------------------------

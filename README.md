@@ -147,7 +147,7 @@ fails leaves nothing half-done.
 Current result:
 
 ```
-262 of 262 checks passed
+269 of 269 checks passed
 All checks passed.
 ```
 
@@ -157,9 +157,9 @@ All checks passed.
 
 | | |
 |---|---|
-| **Dashboard** — live counts, slot grid, recent activity | **Parking Slots** — filterable grid with a detail panel |
+| **Dashboard** — top-down map of the car park, occupancy, hourly traffic, activity | **Parking Slots** — the same map with a persistent bay-details panel |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Slots](docs/screenshots/slots.png) |
-| **Vehicle Entry** — allocate a slot and issue a ticket | **Vehicle Exit** — search, confirm the fee, check out |
+| **Vehicle Entry** — type tiles with live free counts; the allocated bay shown on its row | **Vehicle Exit** — search, confirm the fee, check out |
 | ![Entry](docs/screenshots/entry.png) | ![Exit](docs/screenshots/exit.png) |
 | **Reservations** — book, check in, cancel | **Waiting Queue** — FIFO among compatible vehicles |
 | ![Reservations](docs/screenshots/reservations.png) | ![Queue](docs/screenshots/queue.png) |
@@ -521,7 +521,7 @@ ParkWise/
 ├── include/                One header per class
 ├── src/                    Implementations + main.cpp
 ├── tests/
-│   └── test_main.cpp       262 business rule checks
+│   └── test_main.cpp       269 business rule checks
 ├── third_party/            cpp-httplib and nlohmann/json (header only)
 ├── frontend/
 │   ├── index.html
