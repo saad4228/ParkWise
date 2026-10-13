@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/assets/logo-dark.svg">
+    <img src="frontend/assets/logo.svg" alt="ParkWise — park smarter today" width="300">
+  </picture>
+</p>
+
 # ParkWise — Smart Parking Management System
 
 A local web application for running a single parking facility. The user
@@ -525,11 +532,17 @@ ParkWise/
 ├── third_party/            cpp-httplib and nlohmann/json (header only)
 ├── frontend/
 │   ├── index.html
+│   ├── assets/
+│   │   ├── logo-mark.svg   The mark on its own
+│   │   ├── logo.svg        Full lockup, light backgrounds
+│   │   ├── logo-dark.svg   Full lockup, dark backgrounds
+│   │   └── favicon.svg     The mark on a brand tile, for browser tabs
 │   ├── css/styles.css      The whole design system
 │   └── js/
 │       ├── app.js          Routing and shell
 │       ├── api.js          Every call to the server
 │       ├── ui.js           Shared components
+│       ├── facility.js     The top-down car park
 │       ├── format.js       Money, dates, durations, escaping
 │       ├── ticket.js       Ticket panel and printing
 │       └── pages/          One module per screen

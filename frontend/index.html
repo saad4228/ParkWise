@@ -41,6 +41,27 @@
   <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="6" cy="16.5" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="16.5" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 16.5l4-7h5l3 7M10 9.5h5.5M14 6h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-suv" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 17v-4.4l1.7-5A2 2 0 017 6.2h10a2 2 0 011.9 1.4l1.7 5V17"/><path d="M3.4 12.6h17.2M12 6.4v6.2"/><circle cx="7.2" cy="16.9" r="1.7"/><circle cx="16.8" cy="16.9" r="1.7"/></g></symbol>
 
+  <!-- The ParkWise mark. Unlike the interface icons above it carries its own
+       colour, because it is a logo rather than a glyph that takes the colour
+       of its surroundings. -->
+  <defs>
+    <linearGradient id="pwRibbon" x1="18" y1="3" x2="56" y2="45" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3ACE92"/><stop offset=".5" stop-color="#13A36D"/><stop offset="1" stop-color="#0A7A5C"/>
+    </linearGradient>
+    <linearGradient id="pwRoad" x1="30" y1="13" x2="16" y2="59" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F9A68"/><stop offset="1" stop-color="#096A50"/>
+    </linearGradient>
+  </defs>
+  <symbol id="pw-mark" viewBox="0 0 64 64">
+    <path fill="url(#pwRoad)" d="M21.6 13.4C19 26 15.2 38.8 11.9 50.2 10.5 55.2 12.6 58.6 17.4 58.6L35.4 58.6C30.2 56.6 27.4 52 26.9 44.6 26.3 34 28.5 23 31.2 14.2Z"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="3.8 5.6" opacity=".93" d="M26.4 16C24 26.4 21.4 34.6 21.3 42.4 21.2 49.6 21.8 53.6 22.4 56.4"/>
+    <path fill="url(#pwRibbon)" d="M20.6 7.4C31.4 1.2 46.6 1.8 53.6 9 61 16.6 61 30.2 53.8 37.8 46.8 45.2 38.2 46.8 31 44.9L33.5 30.9C40.1 32.3 46.7 29.5 46.7 23.3 46.7 17.4 40.6 14.6 34.2 16.5 30.8 11.6 25.9 8.5 20.6 7.4Z"/>
+    <path fill="#06513F" opacity=".2" d="M34.2 16.5C30.8 11.6 25.9 8.5 20.6 7.4 27.4 3.5 35.6 1.9 43 3.1 38.6 6.6 35.6 11.1 34.2 16.5Z"/>
+    <circle cx="40.1" cy="23.2" r="11" fill="#FFFFFF"/>
+    <path fill="#15233A" d="M36.3 17.5C36.6 16.5 37.4 15.9 38.4 15.9H41.9C42.9 15.9 43.7 16.5 44 17.5L45.2 21C46.4 21.4 47.2 22.4 47.2 23.7V27.9C47.2 28.6 46.6 29.2 45.9 29.2H44.8C44.1 29.2 43.5 28.6 43.5 27.9V27.3H36.8V27.9C36.8 28.6 36.2 29.2 35.5 29.2H34.4C33.7 29.2 33.1 28.6 33.1 27.9V23.7C33.1 22.4 33.9 21.4 35.1 21Z"/>
+    <path fill="#FFFFFF" opacity=".92" d="M37.3 18.3H43L43.8 20.7H36.5Z"/>
+  </symbol>
+
   <!-- Workspace controls -->
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
   <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
@@ -96,8 +117,8 @@
   <!-- ===== Sidebar ===== -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar__brand">
-      <span class="brand-mark" aria-hidden="true">P</span>
-      <span class="brand-name">ParkWise</span>
+      <svg class="brand-mark" aria-hidden="true"><use href="#pw-mark"/></svg>
+      <span class="brand-name">Park<span class="brand-name__accent">Wise</span></span>
     </div>
     <nav class="sidebar__nav" aria-label="Main">
       <!-- data-tip is the label shown beside an icon when the menu is collapsed.

@@ -45,7 +45,10 @@ export function ticketPanel(ticket, { showActions = true } = {}) {
   return `
     <div class="ticket" data-ticket-id="${escapeHtml(ticket.ticketId)}">
       <div class="ticket__head">
-        <span class="ticket__brand"><span class="brand-mark" aria-hidden="true">P</span>ParkWise</span>
+        <span class="ticket__brand">
+          <svg class="brand-mark" aria-hidden="true"><use href="#pw-mark"/></svg>
+          <span class="brand-name">Park<span class="brand-name__accent">Wise</span></span>
+        </span>
         <span class="ticket__id">${escapeHtml(ticket.ticketId)}</span>
       </div>
       <div class="ticket__body">
@@ -100,8 +103,11 @@ export function printTicket(ticket) {
 
   host.innerHTML = `
     <div class="print-ticket">
-      <h1>ParkWise</h1>
-      <div class="print-sub">Smart Parking Management &middot; Parking Ticket</div>
+      <div class="print-brand">
+        <svg class="print-mark" aria-hidden="true"><use href="#pw-mark"/></svg>
+        <h1>ParkWise</h1>
+      </div>
+      <div class="print-sub">Park smarter today &middot; Parking Ticket</div>
       <div class="print-rule"></div>
       <dl>${detail}</dl>
       <div class="print-rule"></div>

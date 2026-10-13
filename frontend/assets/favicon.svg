@@ -1,5 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#10B981"/>
-  <text x="16" y="23" font-family="Inter,Segoe UI,sans-serif" font-size="20"
-        font-weight="700" fill="#fff" text-anchor="middle">P</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="ParkWise">
+  <title>ParkWise</title>
+  <!-- The app-icon lockup: the mark on a brand tile, as on the logo sheet.
+       A browser tab draws this at 16px, where the open mark's thin road and
+       dashes close up, so here the mark is reversed out of the tile in solid
+       white - the same shape, with the contrast a favicon needs. -->
+  <defs>
+    <linearGradient id="pwTile" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2FC289"/>
+      <stop offset="1" stop-color="#0A7458"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7.5" fill="url(#pwTile)"/>
+
+  <g transform="translate(0.4 2.7) scale(0.44)">
+    <path fill="#FFFFFF" opacity=".93"
+          d="M21.6 13.4 C19 26 15.2 38.8 11.9 50.2
+             C10.5 55.2 12.6 58.6 17.4 58.6
+             L35.4 58.6 C30.2 56.6 27.4 52 26.9 44.6
+             C26.3 34 28.5 23 31.2 14.2 Z"/>
+    <path fill="none" stroke="#0E8A68" stroke-width="2.8" stroke-linecap="round"
+          stroke-dasharray="4.4 6"
+          d="M26.4 16 C24 26.4 21.4 34.6 21.3 42.4 C21.2 49.6 21.8 53.6 22.4 56.4"/>
+    <path fill="#FFFFFF"
+          d="M20.6 7.4 C31.4 1.2 46.6 1.8 53.6 9
+             C61 16.6 61 30.2 53.8 37.8
+             C46.8 45.2 38.2 46.8 31 44.9
+             L33.5 30.9 C40.1 32.3 46.7 29.5 46.7 23.3
+             C46.7 17.4 40.6 14.6 34.2 16.5
+             C30.8 11.6 25.9 8.5 20.6 7.4 Z"/>
+    <circle cx="40.1" cy="23.2" r="11" fill="#0C7E60"/>
+    <path fill="#FFFFFF"
+          d="M36.3 17.5 C36.6 16.5 37.4 15.9 38.4 15.9 H41.9 C42.9 15.9 43.7 16.5 44 17.5
+             L45.2 21 C46.4 21.4 47.2 22.4 47.2 23.7 V27.9 C47.2 28.6 46.6 29.2 45.9 29.2
+             H44.8 C44.1 29.2 43.5 28.6 43.5 27.9 V27.3 H36.8 V27.9 C36.8 28.6 36.2 29.2 35.5 29.2
+             H34.4 C33.7 29.2 33.1 28.6 33.1 27.9 V23.7 C33.1 22.4 33.9 21.4 35.1 21 Z"/>
+  </g>
 </svg>

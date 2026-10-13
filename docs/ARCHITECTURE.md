@@ -411,6 +411,30 @@ Slot state is carried by colour **and** by a glyph (a vehicle for occupied, a
 clock for reserved, a ring for free) **and** by the `title`/`aria-label`, so
 colour is never the only signal.
 
+**The logo is vector art, not a pasted image.** `frontend/assets/` holds the
+mark on its own, the full lockup in a light and a dark version, and a favicon.
+Redrawing the supplied logo as SVG rather than cropping the artwork means it
+stays sharp from a 16px browser tab to a printed ticket, weighs about 2KB, and
+can be placed on any background.
+
+Three decisions worth recording:
+
+- **The wordmark is live text, not part of the artwork.** In the sidebar and on
+  the ticket, "ParkWise" is real HTML, so it stays selectable and searchable,
+  renders crisply at any zoom, and lets "Park" follow the theme while "Wise"
+  keeps the brand green. The green is a stop taken from the mark's own
+  gradient, chosen so it clears 3:1 against the sidebar behind it — 4.4:1 in
+  the light theme, 8.9:1 in the dark one.
+- **The favicon is the mark on a brand tile**, with the shape reversed out in
+  white. The open mark is the right logo at 34px in the sidebar, but a browser
+  tab draws it at 16px, where the thin road and its dashes close up. The tile
+  is the same treatment the logo sheet uses for app icons.
+- **The sprite is hidden with `position:absolute;width:0`, not `display:none`.**
+  A gradient inside a `display:none` subtree is not reliably resolvable from a
+  `<use>` elsewhere on the page: the logo drew its solid shapes and silently
+  skipped its two gradient-filled ones. The interface icons never showed this,
+  because they take `currentColor` and reference no paint server.
+
 **Chart colours are chosen, not picked.** The three vehicle types and the
 revenue bars take their colours from `--chart-car`, `--chart-bike`,
 `--chart-suv` and `--chart-revenue` rather than reusing the interface palette.

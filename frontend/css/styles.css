@@ -42,6 +42,11 @@
   --primary-ink:    #0F766E;
   --on-primary:     #FFFFFF;
 
+  /* The green of "Wise" in the logo. Both values are stops taken from the
+     mark's own gradient, picked so the wordmark clears 3:1 against the
+     sidebar it sits on - 4.4:1 here, 8.9:1 in the dark theme. */
+  --brand-accent:   #0B8A5E;
+
   --info:        #2563EB;
   --info-soft:   #E3EBFC;
   --info-ink:    #1D4ED8;
@@ -144,6 +149,8 @@
   --primary-ink:    #5EEAD4;
   --on-primary:     #042F2E;
 
+  --brand-accent:   #3ACE92;
+
   --info-soft:     #18294F;
   --info-ink:      #93C5FD;
   --warn-soft:     #43300E;
@@ -209,7 +216,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 a { color: inherit; text-decoration: none; }
 
-.icon-sprite { display: none; }
+/* The sprite is hidden by taking it out of the layout rather than with
+   display:none. A gradient inside a display:none subtree is not reliably
+   resolvable by a <use> elsewhere on the page, which left the logo drawing
+   its solid shapes and skipping its gradient-filled ones. */
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 /* Icons inherit the colour of their surroundings. */
 svg { width: 20px; height: 20px; fill: currentColor; }
@@ -267,15 +278,22 @@ svg { width: 20px; height: 20px; fill: currentColor; }
   flex: 0 0 auto;
 }
 
+/* The logo mark. It carries its own colour, so unlike the interface icons it
+   must not inherit the surrounding text colour - hence no fill here. */
 .brand-mark {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: var(--primary);
-  color: var(--on-primary); font-weight: 700; font-size: 16px;
-  display: grid; place-items: center;
-  flex: 0 0 30px;
+  width: 34px; height: 34px; flex: 0 0 34px;
+  display: block;
 }
 
-.brand-name { color: var(--sidebar-fg-strong); font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
+/* The wordmark is live text rather than part of the artwork: it stays
+   selectable, searchable and crisp, and "Park" can follow the theme while
+   "Wise" keeps the brand green on both. */
+.brand-name {
+  color: var(--sidebar-fg-strong);
+  font-weight: 700; font-size: 19px; letter-spacing: -.02em;
+  white-space: nowrap;
+}
+.brand-name__accent { color: var(--brand-accent); }
 
 .sidebar__nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1 1 auto; }
 
@@ -829,6 +847,8 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
   display: flex; align-items: center; gap: 10px;
 }
 .ticket__brand { display: flex; align-items: center; gap: 9px; font-weight: 700; }
+.ticket__brand .brand-mark { width: 26px; height: 26px; flex: 0 0 26px; }
+.ticket__brand .brand-name { font-size: 16px; color: var(--text); }
 .ticket__id {
   margin-left: auto; font-size: 12px; color: var(--text-muted);
   font-variant-numeric: tabular-nums;
@@ -868,7 +888,9 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 
   /* The words are clipped rather than removed, so every link keeps its name
      for a screen reader while the bar is only icons wide. */
-  .nav-collapsed .brand-name,
+  /* Scoped to the sidebar: the wordmark also appears on the ticket, which
+     must not be hidden just because the menu happens to be collapsed. */
+  .nav-collapsed .sidebar .brand-name,
   .nav-collapsed .sidebar .nav-item__label {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap;
@@ -1498,6 +1520,13 @@ button.log__row:hover .log__plate { color: var(--primary-ink); }
     font-family: var(--font);
   }
   .print-host * { color: #000 !important; background: transparent !important; }
+  /* The blanket rule above is for text. The logo keeps its own colours, and
+     prints legibly in greyscale on a mono printer because the shapes carry
+     the meaning rather than the hue. */
+  .print-brand { display: flex; align-items: center; gap: 8pt; margin-bottom: 2pt; }
+  .print-mark { width: 30pt; height: 30pt; flex: 0 0 30pt; }
+  .print-brand h1 { margin: 0; }
+  .print-ticket .print-sub { letter-spacing: .04em; }
 
   .print-ticket { max-width: 86mm; }
   .print-ticket h1 { font-size: 17pt; margin-bottom: 2pt; }
