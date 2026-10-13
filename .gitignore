@@ -1,0 +1,13 @@
+# Build output
+build/
+*.exe
+*.o
+*.obj
+
+# Runtime records. The car park's own data should not live in version control.
+data/
+
+# Editor noise
+.vs/
+.vscode/
+*.user

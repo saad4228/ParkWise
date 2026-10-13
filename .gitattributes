@@ -1,0 +1,21 @@
+# Normalise text files in the repository and check them out with the
+# platform's own line endings.
+* text=auto
+
+# Windows batch files must keep CRLF or cmd.exe can misread them.
+*.bat text eol=crlf
+
+# Sources and docs are LF in the repository.
+*.cpp text eol=lf
+*.h   text eol=lf
+*.hpp text eol=lf
+*.js  text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md  text eol=lf
+*.svg text eol=lf
+CMakeLists.txt text eol=lf
+
+# Screenshots are binary; never touch them.
+*.png binary
