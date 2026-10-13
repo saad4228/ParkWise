@@ -14,13 +14,29 @@ export function icon(id, className = '') {
   return `<svg class="${className}" aria-hidden="true"><use href="${id}"/></svg>`;
 }
 
-export function statCard({ label, value, hint, iconId, tone = 'info', href }) {
+/**
+ * A thin "share of the whole" bar. `percent` is 0-100.
+ *
+ * It carries an aria-label because the bar itself is decoration: the same
+ * figure is always written out beside it.
+ */
+export function meter(percent, label) {
+  const clamped = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+  const tone = clamped >= 100 ? ' meter__fill--full' : clamped >= 80 ? ' meter__fill--busy' : '';
+  return `
+    <div class="meter" role="img" aria-label="${escapeHtml(label || `${clamped}%`)}">
+      <div class="meter__fill${tone}" style="width:${clamped}%"></div>
+    </div>`;
+}
+
+export function statCard({ label, value, hint, iconId, tone = 'info', href, extraHtml = '' }) {
   const inner = `
     <span class="stat__icon stat__icon--${tone}">${icon(iconId)}</span>
-    <span>
+    <span style="min-width:0;flex:1 1 auto">
       <span class="stat__label">${escapeHtml(label)}</span>
       <div class="stat__value">${escapeHtml(value)}</div>
       ${hint ? `<span class="stat__hint">${escapeHtml(hint)}</span>` : ''}
+      ${extraHtml}
     </span>`;
   if (href) {
     return `<button class="stat" type="button" data-navigate="${escapeHtml(href)}">${inner}</button>`;
@@ -159,8 +175,31 @@ export function confirmDialog({
       resolve(result);
     };
 
+    // Tab must not walk out of a modal and leave the operator typing into a
+    // page they cannot see. The two buttons are the whole tab ring, so the
+    // trap is simply "wrap at each end".
     const onKey = (event) => {
-      if (event.key === 'Escape') close(false);
+      if (event.key === 'Escape') {
+        close(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const stops = Array.from(host.querySelectorAll('button:not(:disabled)'));
+      if (stops.length === 0) return;
+
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (!host.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
     host.querySelector('[data-dialog="ok"]').addEventListener('click', () => close(true));
@@ -170,7 +209,11 @@ export function confirmDialog({
     });
     document.addEventListener('keydown', onKey);
 
-    host.querySelector('[data-dialog="ok"]').focus();
+    // A destructive dialog opens with the cancel button focused, so a stray
+    // Enter from the keystroke that opened it does not confirm the deletion.
+    // Harmless confirmations still open ready to accept.
+    const opensOn = tone === 'danger' ? 'cancel' : 'ok';
+    host.querySelector(`[data-dialog="${opensOn}"]`).focus();
   });
 }
 
@@ -223,6 +266,67 @@ const SLOT_ICON = {
   RESERVED: '#i-clock',
 };
 
+/**
+ * Makes a slot grid behave like one control instead of fifty.
+ *
+ * A fifty-slot car park put fifty stops in the tab order, so reaching
+ * anything after the grid meant fifty presses. The grid is now a single stop
+ * and the arrow keys move within it, which is how a grid of choices is
+ * expected to work. Home and End jump to the ends.
+ *
+ * Call this after the grid markup is written, and again after any redraw.
+ */
+export function wireSlotGridKeys(grid, { onActivate } = {}) {
+  if (!grid) return;
+  const tiles = Array.from(grid.querySelectorAll('[data-slot]'));
+  if (tiles.length === 0) return;
+
+  // Only one tile is reachable by Tab; the rest are reached with the arrows.
+  const chosen = grid.querySelector('[data-slot].is-selected') || tiles[0];
+  tiles.forEach((tile) => { tile.tabIndex = tile === chosen ? 0 : -1; });
+
+  // How many tiles fit on a row, so Up and Down move a visual row at a time.
+  const columnsOf = () => {
+    const style = window.getComputedStyle(grid);
+    const columns = style.gridTemplateColumns.split(' ').filter(Boolean).length;
+    return Math.max(1, columns);
+  };
+
+  const moveTo = (index) => {
+    const target = tiles[Math.max(0, Math.min(tiles.length - 1, index))];
+    if (!target) return;
+    tiles.forEach((tile) => { tile.tabIndex = -1; });
+    target.tabIndex = 0;
+    target.focus();
+  };
+
+  grid.addEventListener('keydown', (event) => {
+    const current = tiles.indexOf(document.activeElement);
+    if (current === -1) return;
+
+    const columns = columnsOf();
+    const jumps = {
+      ArrowRight: current + 1,
+      ArrowLeft: current - 1,
+      ArrowDown: current + columns,
+      ArrowUp: current - columns,
+      Home: 0,
+      End: tiles.length - 1,
+    };
+
+    if (event.key in jumps) {
+      event.preventDefault();
+      moveTo(jumps[event.key]);
+      return;
+    }
+    // Space would otherwise scroll the page instead of choosing the slot.
+    if (event.key === ' ' && typeof onActivate === 'function') {
+      event.preventDefault();
+      onActivate(document.activeElement.dataset.slot);
+    }
+  });
+}
+
 export function slotButton(slot, selectedId) {
   const state = slot.displayState;
   const label = BADGE_LABELS[state] || state;
@@ -252,6 +356,62 @@ export function slotLegend() {
       <span><span class="dot dot--ok"></span>Available</span>
       <span><span class="dot dot--held"></span>Reserved</span>
     </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Freshness
+// ---------------------------------------------------------------------------
+
+/**
+ * The "updated a moment ago" line, for the screens that reload on a timer.
+ * `id` lets the screen find the text again to update it in place.
+ */
+export function freshnessBar(id = 'freshness') {
+  return `
+    <div class="freshness" id="${id}">
+      <span class="freshness__dot" aria-hidden="true"></span>
+      <span data-freshness-text>Loading…</span>
+      <button class="btn btn--subtle btn--sm" data-refresh-now type="button">Refresh</button>
+    </div>`;
+}
+
+/**
+ * Starts a freshness line ticking. Returns a stop function, which the screen's
+ * cleanup must call - otherwise the interval outlives the screen.
+ */
+export function startFreshness(root, id, onRefresh) {
+  const host = root.querySelector(`#${id}`);
+  if (!host) return () => {};
+
+  const text = host.querySelector('[data-freshness-text]');
+  let updatedAt = null;
+
+  const describe = () => {
+    if (updatedAt === null) return 'Loading…';
+    const seconds = Math.round((Date.now() - updatedAt) / 1000);
+    if (seconds < 10) return 'Updated just now';
+    if (seconds < 60) return `Updated ${seconds}s ago`;
+    const minutes = Math.round(seconds / 60);
+    return `Updated ${minutes} min${minutes === 1 ? '' : 's'} ago`;
+  };
+
+  const paint = () => { if (text) text.textContent = describe(); };
+
+  host.querySelector('[data-refresh-now]')?.addEventListener('click', () => {
+    if (typeof onRefresh === 'function') onRefresh();
+  });
+
+  const ticker = setInterval(paint, 10000);
+
+  return {
+    markLoading() { host.classList.add('is-loading'); },
+    markUpdated() {
+      host.classList.remove('is-loading');
+      updatedAt = Date.now();
+      paint();
+    },
+    stop() { clearInterval(ticker); },
+  };
 }
 
 // ---------------------------------------------------------------------------

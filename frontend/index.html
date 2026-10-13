@@ -42,6 +42,10 @@
   <symbol id="i-suv" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 17v-4.4l1.7-5A2 2 0 017 6.2h10a2 2 0 011.9 1.4l1.7 5V17"/><path d="M3.4 12.6h17.2M12 6.4v6.2"/><circle cx="7.2" cy="16.9" r="1.7"/><circle cx="16.8" cy="16.9" r="1.7"/></g></symbol>
 </svg>
 
+<!-- Nine navigation links sit before the content in the source order, so a
+     keyboard user gets a way past them on the first load. -->
+<a class="skip-link" href="#page">Skip to main content</a>
+
 <div class="app-shell">
 
   <!-- ===== Sidebar ===== -->
@@ -82,7 +86,8 @@
       <form class="topbar__search" id="globalSearchForm" role="search">
         <svg class="topbar__search-icon" aria-hidden="true"><use href="#i-search"/></svg>
         <input type="search" id="globalSearch" placeholder="Search vehicle, ticket or slot&hellip;"
-               aria-label="Search vehicle, ticket or slot" autocomplete="off">
+               aria-label="Search vehicle, ticket or slot (press / to jump here)"
+               title="Press / to jump here" autocomplete="off">
       </form>
 
       <div class="topbar__actions">

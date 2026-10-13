@@ -95,6 +95,16 @@ async function renderCurrentRoute() {
 
   pageElement.scrollTo?.(0, 0);
   window.scrollTo(0, 0);
+
+  // Move the keyboard into the new screen. Without this, someone navigating
+  // by keyboard stays parked on the sidebar link and has to tab back through
+  // the whole nav to reach the content they just asked for. The `tabindex`
+  // on <main> exists so it can receive this focus without becoming a tab stop
+  // of its own. Screens that want a specific field focus it themselves, so
+  // this only applies when nothing inside has claimed focus.
+  if (!pageElement.contains(document.activeElement)) {
+    pageElement.focus({ preventScroll: true });
+  }
 }
 
 // Any element with data-navigate becomes a link, which keeps the stat cards
@@ -113,18 +123,37 @@ window.addEventListener('hashchange', renderCurrentRoute);
 // Shell chrome
 // ---------------------------------------------------------------------------
 
+const menuToggle = document.getElementById('menuToggle');
+
 function openSidebar() {
   sidebar.classList.add('is-open');
   sidebarScrim.hidden = false;
+  menuToggle.setAttribute('aria-expanded', 'true');
+  // Put the keyboard on the first link, so the menu is usable without a mouse.
+  sidebar.querySelector('.nav-item')?.focus();
 }
 
-function closeSidebar() {
+function closeSidebar({ returnFocus = false } = {}) {
+  const wasOpen = sidebar.classList.contains('is-open');
   sidebar.classList.remove('is-open');
   sidebarScrim.hidden = true;
+  menuToggle.setAttribute('aria-expanded', 'false');
+  // Only grab focus back if the menu was actually open and asked us to -
+  // otherwise every route change would steal focus from the page.
+  if (wasOpen && returnFocus) menuToggle.focus();
 }
 
-document.getElementById('menuToggle').addEventListener('click', openSidebar);
-sidebarScrim.addEventListener('click', closeSidebar);
+menuToggle.setAttribute('aria-expanded', 'false');
+menuToggle.addEventListener('click', openSidebar);
+sidebarScrim.addEventListener('click', () => closeSidebar({ returnFocus: true }));
+
+// Escape closes the slide-over menu, which is what the key is for. The
+// confirmation dialog sits above this and handles its own Escape first.
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && sidebar.classList.contains('is-open')) {
+    closeSidebar({ returnFocus: true });
+  }
+});
 
 // --- theme ---------------------------------------------------------------
 
@@ -172,6 +201,25 @@ document.getElementById('globalSearchForm').addEventListener('submit', (event) =
     navigate(`history?search=${encodeURIComponent(query)}`);
   }
   input.blur();
+});
+
+// A barrier operator works with one hand on the keyboard, so "/" jumps to the
+// search box from anywhere. It is ignored while a field already has focus, so
+// it can still be typed into a registration number or an owner's name.
+document.addEventListener('keydown', (event) => {
+  if (event.key !== '/' || event.ctrlKey || event.altKey || event.metaKey) return;
+
+  const active = document.activeElement;
+  const isTyping = active && (active.tagName === 'INPUT' ||
+                              active.tagName === 'SELECT' ||
+                              active.tagName === 'TEXTAREA' ||
+                              active.isContentEditable);
+  if (isTyping) return;
+
+  event.preventDefault();
+  const search = document.getElementById('globalSearch');
+  search.focus();
+  search.select();
 });
 
 // --- connection indicator -------------------------------------------------

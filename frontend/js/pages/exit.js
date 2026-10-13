@@ -28,7 +28,7 @@ export async function render(container, ctx) {
           <label class="sr-only" for="exitQuery">Ticket ID or registration number</label>
           <span class="search-box">
             ${icon('#i-search')}
-            <input class="input" id="exitQuery" placeholder="Ticket ID or registration number"
+            <input class="input input--plate" id="exitQuery" placeholder="Ticket ID or registration number"
                    autocomplete="off" autocapitalize="characters">
           </span>
           <button class="btn btn--primary" type="submit" id="searchButton">

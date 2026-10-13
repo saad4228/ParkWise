@@ -11,10 +11,15 @@ import {
 } from '../format.js';
 import { statCard, emptyState, errorState, loadingState, toast } from '../ui.js';
 
+// The three series colours live in the stylesheet as --chart-* tokens, which
+// were checked for contrast against the card and for separation from each
+// other under the common forms of colour blindness. The dark theme defines its
+// own three rather than reusing these. Order is fixed: a type always gets the
+// same colour, whether or not the other two appear.
 const TYPE_COLOURS = {
-  CAR: 'var(--info)',
-  BIKE: 'var(--primary)',
-  SUV: 'var(--violet)',
+  CAR: 'var(--chart-car)',
+  BIKE: 'var(--chart-bike)',
+  SUV: 'var(--chart-suv)',
 };
 
 export async function render(container) {
@@ -34,12 +39,18 @@ export async function render(container) {
         <p>Analyse parking statistics and revenue</p>
       </div>
       <div class="page-head__actions">
+        <div class="chip-row" role="group" aria-label="Quick date ranges">
+          <button class="chip" type="button" data-range="today">Today</button>
+          <button class="chip" type="button" data-range="7">Last 7 days</button>
+          <button class="chip" type="button" data-range="14">Last 14 days</button>
+          <button class="chip" type="button" data-range="30">Last 30 days</button>
+          <button class="chip" type="button" data-range="all">All time</button>
+        </div>
         <label class="sr-only" for="repFrom">From date</label>
         <input class="input" id="repFrom" type="date" style="width:auto" value="${state.fromDate}">
         <span class="cell-muted" style="align-self:center">to</span>
         <label class="sr-only" for="repTo">To date</label>
         <input class="input" id="repTo" type="date" style="width:auto" value="${state.toDate}">
-        <button class="btn btn--ghost" id="repAll">All time</button>
       </div>
     </div>
     <div id="reportBody">${loadingState(6)}</div>`;
@@ -144,12 +155,41 @@ export async function render(container) {
   }
 
   function showAllTime() {
-    state.fromDate = '';
-    state.toDate = '';
-    fromInput.value = '';
-    toInput.value = '';
+    applyRange('all');
+  }
+
+  // "Last 7 days" was previously two date pickers and some counting on the
+  // operator's part. The ranges people actually ask for are now one click,
+  // and the chosen one stays marked so the numbers on screen always say which
+  // period they describe. The date boxes remain for anything else.
+  function applyRange(range) {
+    if (range === 'all') {
+      state.fromDate = '';
+      state.toDate = '';
+    } else {
+      const today = new Date();
+      const days = range === 'today' ? 1 : Number(range);
+      const start = new Date(today.getTime() - (days - 1) * 86400000);
+      state.fromDate = timestampToDateInput(Math.floor(start.getTime() / 1000));
+      state.toDate = timestampToDateInput(Math.floor(today.getTime() / 1000));
+    }
+    fromInput.value = state.fromDate;
+    toInput.value = state.toDate;
+    markChosenRange(range);
     load();
   }
+
+  function markChosenRange(range) {
+    container.querySelectorAll('[data-range]').forEach((chip) => {
+      const isChosen = chip.dataset.range === range;
+      chip.classList.toggle('is-chosen', isChosen);
+      chip.setAttribute('aria-pressed', isChosen ? 'true' : 'false');
+    });
+  }
+
+  container.querySelectorAll('[data-range]').forEach((chip) => {
+    chip.addEventListener('click', () => applyRange(chip.dataset.range));
+  });
 
   [fromInput, toInput].forEach((input) => {
     input.addEventListener('change', () => {
@@ -159,12 +199,13 @@ export async function render(container) {
       }
       state.fromDate = fromInput.value;
       state.toDate = toInput.value;
+      markChosenRange(''); // a hand-picked range matches none of the presets
       load();
     });
   });
 
-  container.querySelector('#repAll').addEventListener('click', showAllTime);
-
+  // The default window is the last 14 days, so that preset starts out marked.
+  markChosenRange('14');
   await load();
 }
 
@@ -174,10 +215,18 @@ export async function render(container) {
 
 /** A simple vertical bar chart of revenue per day. */
 function barChart(days) {
-  if (!days.length) {
+  const total = days.reduce((sum, day) => sum + Number(day.revenuePaise || 0), 0);
+
+  // Days with no money in them are not a chart. Drawing one anyway gives a
+  // scale with nothing on it - the axis ends up reading "0.01" twice, because
+  // the top of the range falls back to a single paise - and a row of bars at
+  // the minimum height, which looks like data where there is none.
+  if (!days.length || total === 0) {
     return emptyState({
-      title: 'No revenue yet',
-      text: 'Revenue appears here once vehicles are checked out.',
+      title: 'No revenue in this period',
+      text: days.length
+        ? 'Sessions were checked out, but none of them came to a charge.'
+        : 'Revenue appears here once vehicles are checked out.',
       iconId: '#i-rupee',
     });
   }
@@ -248,10 +297,16 @@ function donutChart(distribution) {
   const thickness = 26;
   const circumference = 2 * Math.PI * radius;
 
+  // A hairline of the card colour between neighbouring arcs. Two segments of
+  // similar lightness touching directly read as one band, and the gap is what
+  // separates them without relying on the colours alone. A single segment gets
+  // no gap, because there is nothing to separate it from.
+  const gap = distribution.length > 1 ? 2 : 0;
+
   let offset = 0;
   const arcs = distribution.map((row) => {
     const fraction = row.count / total;
-    const dash = fraction * circumference;
+    const dash = Math.max(1, fraction * circumference - gap);
     const segment = `
       <circle cx="${centre}" cy="${centre}" r="${radius}"
               fill="none" stroke="${TYPE_COLOURS[row.vehicleType] || 'var(--text-faint)'}"
@@ -261,24 +316,31 @@ function donutChart(distribution) {
               transform="rotate(-90 ${centre} ${centre})">
         <title>${escapeHtml(vehicleTypeLabel(row.vehicleType))}: ${row.count} of ${total}</title>
       </circle>`;
-    offset += dash;
+    offset += fraction * circumference;
     return segment;
   }).join('');
 
+  // The legend carries the name and the numbers, so the chart never depends on
+  // somebody being able to tell the three colours apart.
   const legend = distribution.map((row) => {
     const percent = Math.round((row.count / total) * 100);
     return `
       <div>
         <span class="swatch" style="background:${TYPE_COLOURS[row.vehicleType] || 'var(--text-faint)'}"></span>
         <span>${escapeHtml(vehicleTypeLabel(row.vehicleType))}</span>
-        <span class="count">${percent}%</span>
+        <span class="count">${row.count} &middot; ${percent}%</span>
       </div>`;
   }).join('');
+
+  const spoken = distribution
+    .map((row) => `${vehicleTypeLabel(row.vehicleType)} ${row.count}`)
+    .join(', ');
 
   return `
     <div class="donut-wrap">
       <svg class="chart" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"
-           style="flex:0 0 ${size}px" role="img" aria-label="Vehicle type distribution">
+           style="flex:0 0 ${size}px" role="img"
+           aria-label="Vehicle type distribution: ${escapeHtml(spoken)}">
         ${arcs}
         <text class="donut-centre" x="${centre}" y="${centre - 2}" text-anchor="middle"
               style="font-size:22px">${total}</text>

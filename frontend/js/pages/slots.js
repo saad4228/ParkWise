@@ -11,7 +11,7 @@ import {
 } from '../format.js';
 import {
   icon, badge, emptyState, errorState, loadingState,
-  slotButton, slotLegend, toast,
+  slotButton, slotLegend, toast, freshnessBar, startFreshness, wireSlotGridKeys,
 } from '../ui.js';
 
 const STATE_TEXT = {
@@ -26,6 +26,7 @@ export async function render(container, ctx) {
   let filterState = '';
   let filterType = '';
   let searchText = '';
+  let filterTimer = null;
 
   container.innerHTML = `
     <div class="page-head">
@@ -34,17 +35,21 @@ export async function render(container, ctx) {
         <p>View and manage all parking slots</p>
       </div>
       <div class="page-head__actions">
+        ${freshnessBar('slotsFreshness')}
         <button class="btn btn--ghost" data-navigate="settings">${icon('#i-settings')}Configure slots</button>
       </div>
     </div>
     <div id="slotsBody">${loadingState(6)}</div>`;
 
   const body = container.querySelector('#slotsBody');
+  const freshness = startFreshness(container, 'slotsFreshness', () => load());
 
   async function load() {
+    freshness.markLoading();
     try {
       data = await api.slots();
       draw();
+      freshness.markUpdated();
     } catch (problem) {
       body.innerHTML = errorState(problem.message);
       body.querySelector('[data-retry]')?.addEventListener('click', load);
@@ -258,10 +263,21 @@ export async function render(container, ctx) {
       });
     });
 
+    // One tab stop for the grid; the arrow keys move within it.
+    wireSlotGridKeys(body.querySelector('.slot-grid'), { onActivate: (slotId) => {
+      selectedId = slotId;
+      draw();
+    } });
+
     const search = body.querySelector('#slotSearch');
     search?.addEventListener('input', () => {
       searchText = search.value;
-      draw(); // draw() carries the cursor across the redraw itself
+      // Redrawing on every keystroke rebuilds every tile in the grid, which is
+      // 500 of them in the largest supported layout. A short pause means one
+      // redraw per burst of typing instead of one per character; draw() then
+      // carries the cursor across the redraw itself.
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(draw, 120);
     });
 
     body.querySelector('#stateFilter')?.addEventListener('change', (event) => {
@@ -287,5 +303,9 @@ export async function render(container, ctx) {
   }
 
   const timer = setInterval(load, 60000);
-  return () => clearInterval(timer);
+  return () => {
+    clearInterval(timer);
+    clearTimeout(filterTimer);
+    freshness.stop();
+  };
 }

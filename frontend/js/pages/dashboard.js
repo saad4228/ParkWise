@@ -10,7 +10,7 @@ import {
 } from '../format.js';
 import {
   statCard, emptyState, errorState, loadingState, icon, badge,
-  slotButton, slotLegend,
+  slotButton, slotLegend, meter, freshnessBar, startFreshness, wireSlotGridKeys,
 } from '../ui.js';
 
 export async function render(container, ctx) {
@@ -21,6 +21,7 @@ export async function render(container, ctx) {
         <p>Real-time overview of your parking facility</p>
       </div>
       <div class="page-head__actions">
+        ${freshnessBar('dashFreshness')}
         <button class="btn btn--ghost" data-navigate="exit">${icon('#i-exit')}Vehicle Exit</button>
         <button class="btn btn--primary" data-navigate="entry">${icon('#i-entry')}Vehicle Entry</button>
       </div>
@@ -28,13 +29,15 @@ export async function render(container, ctx) {
     <div id="dashBody">${loadingState(6)}</div>`;
 
   const body = container.querySelector('#dashBody');
+  const freshness = startFreshness(container, 'dashFreshness', () => load());
 
   async function load() {
-    body.innerHTML = loadingState(6);
+    freshness.markLoading();
     try {
       const data = await api.dashboard();
       body.innerHTML = view(data);
       wire(body, data, ctx);
+      freshness.markUpdated();
       ctx.refreshShell();
     } catch (problem) {
       body.innerHTML = errorState(problem.message);
@@ -45,9 +48,15 @@ export async function render(container, ctx) {
   await load();
 
   // The elapsed-time column on an active session keeps moving, so the
-  // dashboard refreshes itself gently while it is on screen.
+  // dashboard refreshes itself gently while it is on screen. The skeleton is
+  // deliberately not shown again on these reloads: replacing a screen the
+  // operator is reading with grey bars every minute is worse than letting the
+  // numbers change under a short "updated" note.
   const timer = setInterval(load, 60000);
-  return () => clearInterval(timer);
+  return () => {
+    clearInterval(timer);
+    freshness.stop();
+  };
 }
 
 function view(data) {
@@ -60,6 +69,9 @@ function view(data) {
         ${statCard({
           label: 'Total Slots', value: String(s.totalSlots),
           hint: `${occupancy}% occupied`, iconId: '#i-grid', tone: 'info', href: 'slots',
+          // How full the car park is, is the one number an operator glances at
+          // most. The bar says it without being read.
+          extraHtml: meter(occupancy, `${occupancy} percent occupied`),
         })}
         ${statCard({
           label: 'Occupied', value: String(s.occupiedSlots),
@@ -222,9 +234,12 @@ function queueList(data) {
 }
 
 function wire(body, data, ctx) {
+  const openSlot = (slotId) => ctx.navigate(`slots?focus=${encodeURIComponent(slotId)}`);
+
   body.querySelectorAll('[data-slot]').forEach((button) => {
-    button.addEventListener('click', () => {
-      ctx.navigate(`slots?focus=${encodeURIComponent(button.dataset.slot)}`);
-    });
+    button.addEventListener('click', () => openSlot(button.dataset.slot));
   });
+
+  // One tab stop for the whole grid, arrow keys inside it.
+  wireSlotGridKeys(body.querySelector('.slot-grid'), { onActivate: openSlot });
 }

@@ -18,6 +18,7 @@ import {
 import {
   icon, badge, emptyState, errorState, loadingState, dataTable,
   withBusyButton, toast, toastError, confirmDialog, fieldError, statCard,
+  freshnessBar, startFreshness,
 } from '../ui.js';
 
 export async function render(container, ctx) {
@@ -27,6 +28,7 @@ export async function render(container, ctx) {
         <h1>Waiting Queue</h1>
         <p>Vehicles waiting for a suitable slot to free up</p>
       </div>
+      <div class="page-head__actions">${freshnessBar('queueFreshness')}</div>
     </div>
 
     <div class="stack">
@@ -41,7 +43,7 @@ export async function render(container, ctx) {
                 <label class="field__label" for="qPlate">
                   Registration Number <span class="req" aria-hidden="true">*</span>
                 </label>
-                <input class="input" id="qPlate" name="registrationNumber"
+                <input class="input input--plate" id="qPlate" name="registrationNumber"
                        placeholder="e.g. MH12AB1234" autocomplete="off" autocapitalize="characters">
               </div>
               <div class="field" data-field="vehicleType">
@@ -88,13 +90,16 @@ export async function render(container, ctx) {
 
   // The most recent reply, so a Cancel button can look up its own request.
   let latest = { requests: [] };
+  const freshness = startFreshness(container, 'queueFreshness', () => load());
 
   async function load() {
+    freshness.markLoading();
     try {
       const data = await api.queue();
       latest = data;
       drawStats(data);
       drawTables(data);
+      freshness.markUpdated();
       ctx.refreshShell();
     } catch (problem) {
       tables.innerHTML = errorState(problem.message);
@@ -284,7 +289,10 @@ export async function render(container, ctx) {
   await load();
 
   const timer = setInterval(load, 45000);
-  return () => clearInterval(timer);
+  return () => {
+    clearInterval(timer);
+    freshness.stop();
+  };
 }
 
 function showFieldError(form, name, message) {

@@ -28,7 +28,7 @@ export async function render(container, ctx) {
               <label class="field__label" for="registrationNumber">
                 Registration Number <span class="req" aria-hidden="true">*</span>
               </label>
-              <input class="input" id="registrationNumber" name="registrationNumber"
+              <input class="input input--plate" id="registrationNumber" name="registrationNumber"
                      placeholder="e.g. MH12AB1234" autocomplete="off" autocapitalize="characters"
                      required aria-required="true">
               <span class="field__hint">Spaces and dashes are tidied up automatically.</span>

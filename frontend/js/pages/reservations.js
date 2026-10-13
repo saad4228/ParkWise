@@ -34,7 +34,7 @@ export async function render(container, ctx) {
               <label class="field__label" for="resPlate">
                 Registration Number <span class="req" aria-hidden="true">*</span>
               </label>
-              <input class="input" id="resPlate" name="registrationNumber"
+              <input class="input input--plate" id="resPlate" name="registrationNumber"
                      placeholder="e.g. MH12AB1234" autocomplete="off" autocapitalize="characters">
             </div>
 

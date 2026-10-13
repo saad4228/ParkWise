@@ -341,6 +341,18 @@ Each page module returns an optional cleanup function, which the router calls
 before replacing the screen — that is how the auto-refresh timers on Dashboard,
 Slots and Queue are stopped.
 
+**Keyboard and focus.** The shell does four things that only matter if you are
+not using a mouse, and each was something the markup already implied but did
+not do:
+
+- A skip link jumps past the nine navigation items to the content.
+- Changing screen moves focus into `<main>`, which is what its `tabindex="-1"`
+  was there for.
+- The confirmation dialog traps Tab, and a **destructive** one opens with
+  *Cancel* focused so a stray Enter cannot delete anything.
+- The slot grid is one tab stop with arrow-key movement inside it, instead of
+  fifty stops between the filters and the rest of the page.
+
 **Three habits that keep the UI honest:**
 
 - `withBusyButton` disables a button and shows a spinner for the duration of a
@@ -365,6 +377,26 @@ component rule is written twice.
 Slot state is carried by colour **and** by a glyph (a vehicle for occupied, a
 clock for reserved, a ring for free) **and** by the `title`/`aria-label`, so
 colour is never the only signal.
+
+**Chart colours are chosen, not picked.** The three vehicle types and the
+revenue bars take their colours from `--chart-car`, `--chart-bike`,
+`--chart-suv` and `--chart-revenue` rather than reusing the interface palette.
+Each set was checked against the card it sits on for lightness, contrast, and
+separation from its neighbours under the common forms of colour blindness.
+
+Two things came out of running that check rather than eyeballing it:
+
+- **Car blue and SUV violet were nearly the same colour** to a deuteranope, and
+  only just distinguishable for everyone else. They sit next to each other in
+  the donut, so SUV was re-stepped to a crimson.
+- **The revenue bars were Car's blue**, which made a chart about money look
+  like a chart about cars when the two sat side by side. Revenue is a
+  magnitude, not one of the vehicle types, so it gets a hue nothing else uses.
+
+The dark theme defines its own three rather than flipping the light ones: the
+green that reads well on a white card is out of range on a dark one. The donut
+also leaves a two-pixel gap between neighbouring arcs and writes the count and
+percentage in the legend, so the chart never depends on telling colours apart.
 
 **Inline styles and media queries.** Three screens set
 `grid-template-columns` as an inline `style` attribute to get a narrow-first
