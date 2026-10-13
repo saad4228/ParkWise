@@ -1,190 +1,193 @@
 /* ===========================================================================
    ParkWise design system
    ---------------------------------------------------------------------------
-   Every colour, radius and spacing step is a variable on :root, so the whole
-   look is decided in this one block. The dark theme further down only swaps
-   those variables - no component rule is written twice.
+   The interface goes quiet so the car park itself becomes the picture.
 
-   One rule governs colour: on the parking map, colour means the STATE of a
-   bay and nothing else. Vehicles are painted neutral, the traffic chart is
-   drawn in greys and tells arrivals from departures by position, and the
-   three state colours were checked so they stay distinct for a colour-blind
-   operator - including the green/red pair most car parks use, which fails.
+   Four rules, and every token below serves one of them:
+
+   1. Three warm greys and no borders. Panel, card, well. Separation comes
+      from tone and space, not from lines.
+   2. One accent for action, one for danger. Nothing else is coloured, which
+      is what lets a dense screen feel calm.
+   3. Objects, not widgets. A bay is occupied because there is a car in it,
+      not because the tile is red. State never depends on hue, so the map
+      stays readable for a colour-blind operator without spending colour.
+   4. Soft geometry. Pills and wide radii; nothing has a sharp corner.
    =========================================================================== */
 
 :root {
-  /* Surfaces: a soft off-white page, white cards, hairline borders. */
-  --app-bg:        #F4F6F8;
-  --surface:       #FFFFFF;
-  --surface-muted: #F8FAFB;
-  --surface-sunk:  #EEF2F5;
+  /* ---- The three greys ------------------------------------------------- */
+  --app-bg:        #E9E9E3;   /* the panel everything sits on */
+  --surface:       #FCFCFC;   /* a card */
+  --surface-muted: #F8F8F6;
+  --surface-sunk:  #F2F2EF;   /* a well: form fields, empty bays, chips */
 
-  --sidebar-bg:        #FFFFFF;
-  --sidebar-border:    #E6EAEF;
-  --sidebar-fg:        #4B5A6E;
-  --sidebar-fg-strong: #0F172A;
-  --sidebar-active-bg: #E6F4F2;
-  --sidebar-active-fg: #0F766E;
-  --sidebar-hover-bg:  #F1F4F7;
+  /* Lines are a last resort. This is for table rows, where rhythm needs it. */
+  --hairline:      #EDEDEA;
+  --border:        var(--hairline);
+  --border-strong: #DFDFDA;
 
-  --border:        #E3E8EE;
-  --border-strong: #CBD5E1;
+  /* ---- Ink -------------------------------------------------------------- */
+  --text:          #15171A;   /* headings, values, numerals */
+  --text-muted:    #767676;   /* labels */
+  --text-faint:    #A3A3A0;   /* hints, axis ticks */
 
-  --text:          #0F172A;
-  --text-muted:    #5B6B80;
-  --text-faint:    #8A99AD;
+  /* ---- The one accent --------------------------------------------------- */
+  /* Amber carries the primary action and "you are here". Because it also has
+     to carry dark text, the ink on it is near-black rather than white. */
+  --accent:        #E4BA42;
+  --accent-hover:  #D9AC2E;
+  --accent-soft:   #F7EBC8;   /* a wash: selected bay, active chip */
+  --accent-ink:    #1A1507;   /* text on an amber fill */
+  --accent-text:   #8A6A08;   /* amber-as-text, dark enough to read */
 
-  /* Brand: a restrained teal. Deep enough that white button text passes
-     WCAG AA (5.5:1), which the earlier emerald did not. */
-  --primary:        #0F766E;
-  --primary-hover:  #115E59;
-  --primary-soft:   #E6F4F2;
-  --primary-ink:    #0F766E;
-  --on-primary:     #FFFFFF;
+  /* A near-black pill, for the secondary action and the active nav item. */
+  --ink-pill:      #15171C;
+  --ink-pill-fg:   #FCFCFC;
 
-  /* The green of "Wise" in the logo. Both values are stops taken from the
-     mark's own gradient, picked so the wordmark clears 3:1 against the
-     sidebar it sits on - 4.4:1 here, 8.9:1 in the dark theme. */
-  --brand-accent:   #0B8A5E;
+  /* ---- Danger ----------------------------------------------------------- */
+  --danger:        #E8653C;
+  --danger-soft:   #FBE6DD;
+  --danger-ink:    #A8360F;
 
-  --info:        #2563EB;
-  --info-soft:   #E3EBFC;
-  --info-ink:    #1D4ED8;
+  /* Kept so existing components keep working. Warnings moved off amber when
+     amber was promoted to the action colour, so they share the danger hue at
+     a lighter weight rather than competing with every button on the page. */
+  --primary:        var(--accent);
+  --primary-hover:  var(--accent-hover);
+  --primary-soft:   var(--accent-soft);
+  --primary-ink:    var(--accent-text);
+  --on-primary:     var(--accent-ink);
+  --brand-accent:   var(--accent-text);
+  --info:        #5B6470;  --info-soft:   #EDEEF0;  --info-ink:   #454D57;
+  --warn:        #C98A1E;  --warn-soft:   #F7EBC8;  --warn-ink:   #7A5A08;
+  --violet:      #7A6CA8;  --violet-soft: #EEECF4;  --violet-ink: #4C4273;
 
-  --warn:        #D97706;
-  --warn-soft:   #FEF3C7;
-  --warn-ink:    #92400E;
+  /* ---- Bay state --------------------------------------------------------
+     Almost no colour. An empty bay is a well; an occupied one holds a car;
+     a held one is drawn with a dashed edge and a clock. The solid values
+     below are only ever used for small legend dots and the summary donut. */
+  --state-free: #B9BCB4;
+  --state-busy: #15171A;
+  --state-held: #C98A1E;
 
-  --danger:      #DC2626;
-  --danger-soft: #FDECEC;
-  --danger-ink:  #B91C1C;
+  --bay-free-bg: var(--surface-sunk);
+  --bay-busy-bg: #FFFFFF;
+  --bay-held-bg: #FAF6EC;
 
-  --violet:      #7C3AED;
-  --violet-soft: #EDE9FE;
-  --violet-ink:  #5B21B6;
-
-  /* ---- Bay state -------------------------------------------------------
-     The solid three were validated as a set against both card colours:
-     lightness, contrast, and separation under protanopia and deuteranopia.
-     The usual green-for-free / red-for-taken pair measured a delta-E of 2.7
-     for a deuteranope - effectively one colour - so "free" is a blue-green
-     teal, which keeps the go/stop reading and separates by 13.1. */
-  --state-free: #0D9488;
-  --state-busy: #DC2626;
-  --state-held: #2563EB;
-
-  --bay-free-bg: #DDF3EF;  --bay-free-fg: #0F766E;
-  --bay-busy-bg: #FBE8E8;  --bay-busy-fg: #B91C1C;
-  --bay-held-bg: #E3EBFC;  --bay-held-fg: #1D4ED8;
-
-  /* Kept for anything still using the older names. */
-  --slot-free-bg: var(--bay-free-bg); --slot-free-fg: var(--bay-free-fg); --slot-free-br: var(--state-free);
-  --slot-busy-bg: var(--bay-busy-bg); --slot-busy-fg: var(--bay-busy-fg); --slot-busy-br: var(--state-busy);
-  --slot-held-bg: var(--bay-held-bg); --slot-held-fg: var(--bay-held-fg); --slot-held-br: var(--state-held);
-
-  /* ---- The lot itself: asphalt, painted lines, aisles, kerbs. ---------- */
-  --lot-ground:     #EDF1F4;
-  --lot-line:       #FFFFFF;
-  --lot-aisle:      #CBD4DD;
+  /* ---- The lot ---------------------------------------------------------- */
+  --lot-ground:   #E4E4DE;   /* asphalt */
+  --lot-line:     #FFFFFF;   /* painted bay markings */
+  --lot-aisle:    #DCDCD5;   /* the driving lane */
   --lot-aisle-mark: #FFFFFF;
-  --lot-kerb:       #DCE3EA;
-  --vehicle-body:   #FFFFFF;
-  --vehicle-shadow: rgba(15, 23, 42, .28);
+  --lot-kerb:     #D7D7D0;
 
-  /* Arrivals and departures. Grey on purpose: they are told apart by sitting
-     above or below the axis, so they never borrow a bay-state colour. */
-  --flow-in:  #3A4A60;
-  --flow-out: #9AA8BA;
+  /* Arrivals and departures: greys, told apart by which side of the axis
+     they sit on, so the traffic chart spends no colour either. */
+  --flow-in:  #2E3238;
+  --flow-out: #B4B7BC;
 
-  /* Chart series on the Reports screen. */
-  --chart-car:  #3B82F6;
-  --chart-bike: #047857;
-  --chart-suv:  #BE185D;
-  --chart-revenue: #8B5CF6;
+  /* Chart series, for the Reports screen. */
+  --chart-car:  #3F4650;
+  --chart-bike: #9AA0A8;
+  --chart-suv:  #C98A1E;
+  --chart-revenue: #15171C;
 
-  --radius-sm: 6px;
-  --radius:    10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
+  /* ---- Shape ------------------------------------------------------------ */
+  --radius-sm:   10px;
+  --radius:      14px;
+  --radius-lg:   20px;
+  --radius-xl:   26px;
+  --radius-pill: 999px;
 
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
-  --shadow:    0 1px 3px rgba(15, 23, 42, .07), 0 1px 2px rgba(15, 23, 42, .04);
-  --shadow-lg: 0 12px 32px rgba(15, 23, 42, .12);
+  /* Barely-there lift. Depth comes from tone, not from drop shadows. */
+  --shadow-sm: 0 1px 2px rgba(20, 22, 26, .035);
+  --shadow:    0 2px 8px rgba(20, 22, 26, .05);
+  --shadow-lg: 0 16px 40px rgba(20, 22, 26, .13);
 
-  --sidebar-w:           232px;
-  --sidebar-w-collapsed: 72px;
-  --topbar-h:            64px;
+  --sidebar-bg:        var(--app-bg);
+  --sidebar-border:    transparent;
+  --sidebar-fg:        #6E7076;
+  --sidebar-fg-strong: var(--text);
+  --sidebar-active-bg: var(--ink-pill);
+  --sidebar-active-fg: var(--ink-pill-fg);
+  --sidebar-hover-bg:  rgba(21, 23, 28, .05);
+
+  --sidebar-w:           236px;
+  --sidebar-w-collapsed: 76px;
+  --topbar-h:            70px;
 
   --ease: cubic-bezier(.2, .7, .2, 1);
 
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Deep navy with layered blue-grey panels. Only the variables change. */
+/* The same system after dark: warm charcoal rather than navy, so the amber
+   still belongs. The greys inverse, the accent holds, the rules do not move. */
 :root[data-theme="dark"] {
-  --app-bg:        #0A1120;
-  --surface:       #152033;
-  --surface-muted: #19253A;
-  --surface-sunk:  #101A2B;
+  --app-bg:        #16171A;
+  --surface:       #1E2024;
+  --surface-muted: #212328;
+  --surface-sunk:  #26282D;
 
-  --sidebar-bg:        #0E1727;
-  --sidebar-border:    #1C283D;
-  --sidebar-fg:        #93A3B8;
-  --sidebar-fg-strong: #F1F5F9;
-  --sidebar-active-bg: #12302E;
-  --sidebar-active-fg: #5EEAD4;
-  --sidebar-hover-bg:  #162136;
+  --hairline:      #2A2D33;
+  --border:        var(--hairline);
+  --border-strong: #353941;
 
-  --border:        #24324A;
-  --border-strong: #34445F;
+  --text:          #F4F4F2;
+  --text-muted:    #9FA1A6;
+  --text-faint:    #6E7076;
 
-  --text:          #F1F5F9;
-  --text-muted:    #9AAABF;
-  --text-faint:    #66768D;
+  --accent:        #E8C25A;
+  --accent-hover:  #F0CE72;
+  --accent-soft:   #3A3016;
+  --accent-ink:    #1A1507;
+  --accent-text:   #E8C25A;
 
-  /* A brighter teal reads on navy; its buttons carry dark text instead. */
-  --primary:        #2DD4BF;
-  --primary-hover:  #5EEAD4;
-  --primary-soft:   #12302E;
-  --primary-ink:    #5EEAD4;
-  --on-primary:     #042F2E;
+  --ink-pill:      #F4F4F2;
+  --ink-pill-fg:   #15171C;
 
-  --brand-accent:   #3ACE92;
+  --danger:        #EC7550;
+  --danger-soft:   #3B2016;
+  --danger-ink:    #F0A98E;
 
-  --info-soft:     #18294F;
-  --info-ink:      #93C5FD;
-  --warn-soft:     #43300E;
-  --warn-ink:      #FCD34D;
-  --danger-soft:   #3F1A1F;
-  --danger-ink:    #FCA5A5;
-  --violet-soft:   #2E2356;
-  --violet-ink:    #C4B5FD;
+  --info-soft:   #24272C;  --info-ink:   #AEB4BC;
+  --warn-soft:   #3A3016;  --warn-ink:   #E8C25A;
+  --violet-soft: #2A2740;  --violet-ink: #B8AFD8;
 
-  /* The same three solid state colours: they were validated against this
-     card colour too, so nothing needs to change. Only the fills do. */
-  --bay-free-bg: #0F3A38;  --bay-free-fg: #5EEAD4;
-  --bay-busy-bg: #3A1A21;  --bay-busy-fg: #FCA5A5;
-  --bay-held-bg: #172A50;  --bay-held-fg: #93C5FD;
+  --state-free: #5A5D63;
+  --state-busy: #F4F4F2;
+  --state-held: #E8C25A;
 
-  --lot-ground:     #18233A;
-  --lot-line:       rgba(255, 255, 255, .17);
-  --lot-aisle:      #131D30;
-  --lot-aisle-mark: rgba(255, 255, 255, .26);
-  --lot-kerb:       #22304A;
-  --vehicle-body:   #DCE3EC;
-  --vehicle-shadow: rgba(0, 0, 0, .5);
+  /* A taken bay is lifted well clear of an empty one here, for two reasons:
+     a dark-painted car would otherwise disappear into a dark bay, and the
+     lighter patch is what makes occupancy legible at a glance in this theme
+     the way the car alone does in the light one. */
+  --bay-free-bg: #202226;
+  --bay-busy-bg: #3A3F47;
+  --bay-held-bg: #332D1C;
 
-  --flow-in:  #CBD5E1;
-  --flow-out: #5D6E86;
+  --lot-ground:   #1A1C1F;
+  --lot-line:     rgba(255, 255, 255, .13);
+  --lot-aisle:    #141518;
+  --lot-aisle-mark: rgba(255, 255, 255, .2);
+  --lot-kerb:     #212429;
 
-  --chart-car:  #3B82F6;
-  --chart-bike: #15803D;
-  --chart-suv:  #DB2777;
-  --chart-revenue: #8B5CF6;
+  --flow-in:  #E4E4E2;
+  --flow-out: #5E6166;
+
+  --chart-car:  #B9BEC6;
+  --chart-bike: #6E737B;
+  --chart-suv:  #E8C25A;
+  --chart-revenue: #F4F4F2;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
-  --shadow:    0 1px 3px rgba(0, 0, 0, .4);
-  --shadow-lg: 0 14px 34px rgba(0, 0, 0, .5);
+  --shadow:    0 2px 10px rgba(0, 0, 0, .38);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, .55);
+
+  --sidebar-bg:        var(--app-bg);
+  --sidebar-fg:        #9FA1A6;
+  --sidebar-hover-bg:  rgba(255, 255, 255, .06);
 }
 
 /* --------------------------------------------------------------------- */
@@ -222,8 +225,11 @@ a { color: inherit; text-decoration: none; }
    its solid shapes and skipping its gradient-filled ones. */
 .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-/* Icons inherit the colour of their surroundings. */
-svg { width: 20px; height: 20px; fill: currentColor; }
+/* Icons inherit the colour of their surroundings. The set is drawn as thin
+   outlines at one stroke weight, so nothing here fills them. */
+svg { width: 20px; height: 20px; fill: none; color: inherit; }
+/* The two places that are artwork rather than glyphs keep their own paint. */
+.brand-mark, .bay__vehicle, .lot-preview img { fill: initial; }
 
 :focus-visible {
   outline: 2px solid var(--primary);
@@ -279,11 +285,18 @@ svg { width: 20px; height: 20px; fill: currentColor; }
 }
 
 /* The logo mark. It carries its own colour, so unlike the interface icons it
-   must not inherit the surrounding text colour - hence no fill here. */
+   must not inherit the surrounding text colour - hence no fill here.
+
+   PLACEHOLDER: the current mark is the old green one, which breaks the
+   one-accent rule on this palette. Until the redrawn logo lands it is
+   desaturated to ink so the corner reads as deliberate rather than leftover.
+   Delete this filter when the new artwork arrives. */
 .brand-mark {
   width: 34px; height: 34px; flex: 0 0 34px;
   display: block;
+  filter: grayscale(1) brightness(.42) contrast(1.5);
 }
+:root[data-theme="dark"] .brand-mark { filter: grayscale(1) brightness(2.6) contrast(.9); }
 
 /* The wordmark is live text rather than part of the artwork: it stays
    selectable, searchable and crisp, and "Park" can follow the theme while
@@ -351,9 +364,8 @@ svg { width: 20px; height: 20px; fill: currentColor; }
 .topbar {
   height: var(--topbar-h);
   flex: 0 0 var(--topbar-h);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 16px;
+  background: var(--app-bg);
+  display: flex; align-items: center; gap: 14px;
   padding: 0 24px;
   position: sticky; top: 0; z-index: 20;
 }
@@ -366,30 +378,30 @@ svg { width: 20px; height: 20px; fill: currentColor; }
   width: 17px; height: 17px; color: var(--text-faint); pointer-events: none;
 }
 .topbar__search input {
-  width: 100%; height: 38px;
-  padding: 0 12px 0 36px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-muted);
+  width: 100%; height: 42px;
+  padding: 0 14px 0 40px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
   color: var(--text);
 }
 .topbar__search input::placeholder { color: var(--text-faint); }
-.topbar__search input:focus { outline: none; border-color: var(--primary); background: var(--surface); }
+.topbar__search input:focus { outline: none; box-shadow: 0 0 0 2px var(--accent); }
 
 .topbar__actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
 .icon-btn {
   position: relative;
-  width: 36px; height: 36px;
+  width: 40px; height: 40px;
   display: grid; place-items: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
   color: var(--text-muted);
   cursor: pointer;
   transition: background .12s, color .12s;
 }
-.icon-btn:hover { background: var(--surface-sunk); color: var(--text); }
+.icon-btn:hover { background: var(--surface-sunk); color: var(--text); transform: translateY(-1px); }
 .icon-btn__dot {
   position: absolute; top: 7px; right: 8px;
   width: 7px; height: 7px; border-radius: 50%;
@@ -423,19 +435,18 @@ svg { width: 20px; height: 20px; fill: currentColor; }
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 0;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
 }
 .card__head {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 20px 22px 0;
 }
-.card__head h2 { font-size: 15px; font-weight: 600; }
+.card__head h2 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
 .card__head p { font-size: 12.5px; color: var(--text-muted); margin-top: 1px; }
 .card__head-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.card__body { padding: 20px; }
+.card__body { padding: 18px 22px 22px; }
 .card__body--flush { padding: 0; }
 
 .grid { display: grid; gap: 16px; }
@@ -455,20 +466,20 @@ svg { width: 20px; height: 20px; fill: currentColor; }
 
 .stat {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 0;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
-  padding: 18px;
+  padding: 20px;
   display: flex; align-items: center; gap: 14px;
   width: 100%; text-align: left;
   font: inherit; color: inherit;
 }
 button.stat { cursor: pointer; transition: border-color .12s, box-shadow .12s, transform .12s; }
-button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
+button.stat:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
 
 .stat__icon {
   width: 42px; height: 42px; flex: 0 0 42px;
-  border-radius: 11px;
+  border-radius: var(--radius-pill);
   display: grid; place-items: center;
 }
 .stat__icon svg { width: 21px; height: 21px; }
@@ -488,9 +499,9 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  height: 38px; padding: 0 16px;
+  height: 40px; padding: 0 20px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   font-size: 13.5px; font-weight: 600;
   cursor: pointer;
   transition: background .12s, border-color .12s, color .12s, opacity .12s;
@@ -501,8 +512,13 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
 .btn--primary { background: var(--primary); color: var(--on-primary); }
 .btn--primary:hover:not(:disabled) { background: var(--primary-hover); }
 
-.btn--ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
-.btn--ghost:hover:not(:disabled) { background: var(--surface-sunk); border-color: var(--border-strong); }
+/* The quiet button is a well, not an outline. */
+.btn--ghost { background: var(--surface-sunk); color: var(--text); border-color: transparent; }
+.btn--ghost:hover:not(:disabled) { background: var(--border-strong); }
+
+/* The near-black pill from the reference, for a second real action. */
+.btn--ink { background: var(--ink-pill); color: var(--ink-pill-fg); }
+.btn--ink:hover:not(:disabled) { filter: brightness(1.22); }
 
 .btn--danger { background: var(--danger); color: #fff; }
 .btn--danger:hover:not(:disabled) { filter: brightness(.93); }
@@ -510,7 +526,7 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
 .btn--subtle { background: transparent; color: var(--text-muted); }
 .btn--subtle:hover:not(:disabled) { background: var(--surface-sunk); color: var(--text); }
 
-.btn--sm { height: 32px; padding: 0 11px; font-size: 12.5px; }
+.btn--sm { height: 32px; padding: 0 14px; font-size: 12.5px; }
 .btn--block { width: 100%; }
 
 .btn:disabled { opacity: .55; cursor: not-allowed; }
@@ -538,13 +554,13 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
 .field__hint { font-size: 11.5px; color: var(--text-muted); }
 
 .input, .select, .textarea {
-  width: 100%; height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
+  width: 100%; height: 44px;
+  padding: 0 14px;
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--surface-sunk);
   color: var(--text);
-  transition: border-color .12s, box-shadow .12s;
+  transition: background-color .12s var(--ease), box-shadow .12s var(--ease);
 }
 .textarea { height: auto; padding: 10px 12px; }
 .input::placeholder { color: var(--text-faint); }
@@ -556,8 +572,9 @@ button.stat:hover { border-color: var(--border-strong); box-shadow: var(--shadow
 .input--plate { text-transform: uppercase; letter-spacing: .03em; }
 .input--plate::placeholder { text-transform: none; letter-spacing: normal; }
 .input:focus, .select:focus, .textarea:focus {
-  outline: none; border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+  outline: none;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 .input:disabled, .select:disabled { background: var(--surface-sunk); color: var(--text-muted); cursor: not-allowed; }
 
@@ -966,8 +983,8 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 .workspace {
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 0;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
@@ -1124,7 +1141,12 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lot-line) 55%, transparent);
 }
 
-/* ---- A single bay ---------------------------------------------------- */
+/* ---- A single bay ----------------------------------------------------
+   A bay is a painted rectangle of asphalt. Whether it is taken is told by
+   whether a car is standing in it, not by the colour of the tile - which is
+   both truer to a real car park and readable without colour vision. Held
+   bays, which have no real-world equivalent to photograph, are drawn with a
+   dashed edge and a clock instead.                                        */
 
 .bay {
   position: relative;
@@ -1132,130 +1154,127 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
   flex: 0 0 auto;
   margin: 0; padding: 0;
   border: 0;
-  border-right: var(--line) solid var(--lot-line);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   font: inherit;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  transition: transform .14s var(--ease), opacity .18s var(--ease), filter .18s var(--ease);
+  transition: transform .16s var(--ease), opacity .18s var(--ease), filter .18s var(--ease);
 }
-.lot-row__bays > .bay:first-child { border-left: var(--line) solid var(--lot-line); }
 
-/* Vehicle-shaped bays: an SUV needs a little more room, a motorcycle less. */
-.bay--suv  { width: calc(var(--bay-w) * 1.14); height: calc(var(--bay-h) * 1.06); }
-.bay--bike { width: calc(var(--bay-w) * .68);  height: calc(var(--bay-h) * .8); }
+/* Vehicle-shaped bays. */
+.bay--suv  { width: calc(var(--bay-w) * 1.12); height: calc(var(--bay-h) * 1.04); }
+.bay--bike { width: calc(var(--bay-w) * .72);  height: calc(var(--bay-h) * .8); }
 
-/* The tinted floor of the bay, inset from the painted lines either side. */
+/* The painted rectangle. Markings on three sides, open to the aisle, the way
+   bays are actually painted. */
 .bay::before {
   content: ""; position: absolute;
-  inset: calc(3px * var(--zoom));
-  border-radius: calc(5px * var(--zoom));
-  background: var(--bay-fill, transparent);
-  transition: background-color .25s var(--ease), box-shadow .14s var(--ease);
+  inset: calc(2px * var(--zoom));
+  border-radius: calc(3px * var(--zoom));
+  background: var(--bay-fill, var(--surface-sunk));
+  box-shadow:
+    inset calc(2px * var(--zoom)) 0 0 var(--lot-line),
+    inset calc(-2px * var(--zoom)) 0 0 var(--lot-line);
+  transition: background-color .3s var(--ease);
 }
+.lot-row--down .bay::before { box-shadow:
+  inset calc(2px * var(--zoom)) 0 0 var(--lot-line),
+  inset calc(-2px * var(--zoom)) 0 0 var(--lot-line),
+  inset 0 calc(2px * var(--zoom)) 0 var(--lot-line); }
+.lot-row--up .bay::before { box-shadow:
+  inset calc(2px * var(--zoom)) 0 0 var(--lot-line),
+  inset calc(-2px * var(--zoom)) 0 0 var(--lot-line),
+  inset 0 calc(-2px * var(--zoom)) 0 var(--lot-line); }
 
-/* The back wall of the bay, in the state colour. It stays visible even when
-   a vehicle covers most of the floor, so state never depends on the tint. */
-.bay::after {
+.bay--available { --bay-fill: var(--bay-free-bg); }
+.bay--occupied  { --bay-fill: var(--bay-busy-bg); }
+.bay--reserved  { --bay-fill: var(--bay-held-bg); color: var(--warn-ink); }
+
+/* Held for a booking: a dashed edge, so it is told apart by line rather than
+   by hue. */
+.bay--reserved::after {
   content: ""; position: absolute;
-  left: calc(5px * var(--zoom)); right: calc(5px * var(--zoom));
-  height: calc(4px * var(--zoom));
-  border-radius: 999px;
-  background: var(--bay-edge, transparent);
+  inset: calc(5px * var(--zoom));
+  border-radius: calc(4px * var(--zoom));
+  border: max(1px, calc(1.5px * var(--zoom))) dashed var(--state-held);
+  opacity: .62;
+  pointer-events: none;
 }
-.lot-row--down .bay::after { top: calc(2px * var(--zoom)); }
-.lot-row--up   .bay::after { bottom: calc(2px * var(--zoom)); }
 
-.bay--available { --bay-fill: var(--bay-free-bg); --bay-edge: var(--state-free); color: var(--bay-free-fg); }
-.bay--occupied  { --bay-fill: var(--bay-busy-bg); --bay-edge: var(--state-busy); color: var(--bay-busy-fg); }
-.bay--reserved  { --bay-fill: var(--bay-held-bg); --bay-edge: var(--state-held); color: var(--bay-held-fg); }
-
-/* Reserved is also told apart by a dashed outline: physically empty, but
-   spoken for. */
-.bay--reserved::before {
-  outline: max(1px, calc(1.5px * var(--zoom))) dashed var(--state-held);
-  outline-offset: calc(-3px * var(--zoom));
-}
+.bay--occupied .bay__id { display: none; }
 
 .bay__id {
   position: relative; z-index: 2;
-  font-weight: 700; font-size: calc(10.5px * var(--zoom));
-  letter-spacing: .02em;
+  font-weight: 600; font-size: calc(10px * var(--zoom));
+  letter-spacing: .01em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  color: var(--text-faint);
 }
-.bay__type {
-  position: relative; z-index: 2;
-  font-size: calc(8.5px * var(--zoom)); font-weight: 700; letter-spacing: .08em;
-  opacity: .65; margin-top: calc(4px * var(--zoom));
-}
+.bay--reserved .bay__id { color: var(--warn-ink); }
 .bay__mark {
   position: relative; z-index: 2;
-  width: calc(15px * var(--zoom)); height: calc(15px * var(--zoom));
-  margin-top: calc(5px * var(--zoom));
+  width: calc(13px * var(--zoom)); height: calc(13px * var(--zoom));
+  margin-bottom: calc(4px * var(--zoom));
+  opacity: .8;
 }
 
-/* The label sits on the open side of the bay, by the aisle, where a driver
-   would read it. */
-.lot-row--down .bay { justify-content: flex-end; padding-bottom: calc(8px * var(--zoom)); }
-.lot-row--up   .bay { justify-content: flex-start; padding-top: calc(8px * var(--zoom)); }
-.lot-row--up   .bay__id { order: -1; }
-.lot-row--up   .bay__type { margin-top: calc(4px * var(--zoom)); }
+/* The label sits at the open end of the bay, by the aisle, where it is
+   painted in a real car park. */
+.lot-row--down .bay { justify-content: flex-end; padding-bottom: calc(6px * var(--zoom)); }
+.lot-row--up   .bay { justify-content: flex-start; padding-top: calc(6px * var(--zoom)); }
+.lot-row--up   .bay__mark { order: 2; margin-bottom: 0; margin-top: calc(4px * var(--zoom)); }
 
-/* The parked vehicle, nose towards the back wall. */
+/* The parked vehicle: a real render, nose towards the head of the bay. */
 .bay__vehicle {
   position: absolute; z-index: 1;
   left: 50%; top: 50%;
-  width: calc(var(--bay-w) * .66); height: calc(var(--bay-h) * .7);
-  transform: translate(-50%, -56%);
-  color: var(--vehicle-body);
-  filter: drop-shadow(0 calc(2px * var(--zoom)) calc(3px * var(--zoom)) var(--vehicle-shadow));
-  animation: vehicle-in .35s var(--ease);
+  width: var(--vehicle-w, 76%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  animation: vehicle-in .4s var(--ease);
 }
-.bay--suv  .bay__vehicle { width: calc(var(--bay-w) * .8 / 1.14 * 1.14); height: calc(var(--bay-h) * .76); }
-.bay--bike .bay__vehicle { width: calc(var(--bay-w) * .5); height: calc(var(--bay-h) * .6); }
-.lot-row--up .bay__vehicle { transform: translate(-50%, -44%) rotate(180deg); animation-name: vehicle-in-up; }
-@keyframes vehicle-in    { from { opacity: 0; transform: translate(-50%, -40%); } }
-@keyframes vehicle-in-up { from { opacity: 0; transform: translate(-50%, -60%) rotate(180deg); } }
-
-/* With a vehicle in the bay, the id sits on a small plate so it stays
-   readable against the roof. */
-.bay--occupied .bay__id {
-  padding: calc(2px * var(--zoom)) calc(4px * var(--zoom));
-  border-radius: calc(4px * var(--zoom));
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  color: var(--bay-busy-fg);
+.bay--car  .bay__vehicle { --vehicle-w: 78%; }
+.bay--suv  .bay__vehicle { --vehicle-w: 80%; }
+.bay--bike .bay__vehicle { --vehicle-w: 66%; }
+/* Rows on the far side of an aisle are entered from the other direction, so
+   their cars face the other way. */
+.lot-row--up .bay__vehicle { transform: translate(-50%, -50%) rotate(180deg); }
+@keyframes vehicle-in { from { opacity: 0; transform: translate(-50%, -58%) scale(.97); } }
+.lot-row--up .bay__vehicle { animation-name: vehicle-in-up; }
+@keyframes vehicle-in-up {
+  from { opacity: 0; transform: translate(-50%, -42%) rotate(180deg) scale(.97); }
 }
 
 .bay:hover { transform: translateY(calc(-2px * var(--zoom))); z-index: 4; }
-.bay:hover::before { box-shadow: 0 calc(6px * var(--zoom)) calc(14px * var(--zoom)) rgba(15, 23, 42, .16); }
-.bay:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; z-index: 5; border-radius: calc(6px * var(--zoom)); }
+.bay:hover::before { box-shadow: 0 calc(5px * var(--zoom)) calc(14px * var(--zoom)) rgba(20, 22, 26, .13); }
+.bay:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 5; border-radius: calc(5px * var(--zoom)); }
 
+/* Selection is the one place colour appears on the map. */
 .bay.is-selected { z-index: 6; }
 .bay.is-selected::before {
-  box-shadow: 0 0 0 max(2px, calc(2.5px * var(--zoom))) var(--text),
-              0 calc(8px * var(--zoom)) calc(18px * var(--zoom)) rgba(15, 23, 42, .22);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 max(2px, calc(2.5px * var(--zoom))) var(--accent);
 }
+.bay.is-selected .bay__id { color: var(--accent-ink); }
 
-/* Filtered out: still in its place, because the layout is the point, but
-   pushed into the background. */
-.bay.is-dimmed { opacity: .22; filter: saturate(.3); }
-.bay.is-dimmed:hover { opacity: .6; }
+/* Filtered out: left in place, because position is the point, but pushed back. */
+.bay.is-dimmed { opacity: .25; filter: grayscale(1); }
+.bay.is-dimmed:hover { opacity: .65; }
 
-/* A bay whose state changed since the last refresh pulses once in its new
-   colour, so a change made at the barrier is noticed on the map. */
-.bay.is-changed::before { animation: bay-changed 1.4s var(--ease) 1; }
+/* A bay that changed since it was last on screen gets one quiet pulse. */
+.bay.is-changed::before { animation: bay-changed 1.5s var(--ease) 1; }
 @keyframes bay-changed {
-  0%   { box-shadow: 0 0 0 0 var(--bay-edge); }
-  35%  { box-shadow: 0 0 0 calc(6px * var(--zoom)) color-mix(in srgb, var(--bay-edge) 35%, transparent); }
+  0%   { box-shadow: 0 0 0 0 var(--accent); }
+  35%  { box-shadow: 0 0 0 calc(5px * var(--zoom)) color-mix(in srgb, var(--accent) 45%, transparent); }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
-/* Small sizes drop the words and keep the shapes. */
+/* Small sizes drop the labels and keep the shapes. */
 .lot[data-dense] .bay__id,
-.lot[data-dense] .bay__type { display: none; }
-.lot[data-dense] .bay__mark { margin-top: 0; }
+.lot[data-dense] .bay__mark { display: none; }
 
 .facility__empty { padding: 60px 20px; background: var(--surface); }
 
@@ -1293,8 +1312,8 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 }
 .rail-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 0;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   flex: 0 0 auto;
 }

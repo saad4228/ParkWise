@@ -22,7 +22,23 @@ import { badge, icon, slotLegend } from './ui.js';
 
 const STATE_CLASS = { AVAILABLE: 'bay--available', OCCUPIED: 'bay--occupied', RESERVED: 'bay--reserved' };
 const STATE_WORD = { AVAILABLE: 'available', OCCUPIED: 'occupied', RESERVED: 'reserved' };
-const VEHICLE_SYMBOL = { CAR: '#v-car', SUV: '#v-suv', BIKE: '#v-bike' };
+// Photographed from directly overhead, trimmed and scaled so the three stay
+// in proportion to one another. Two paint variants of each: a full row of
+// identical cars looks synthetic, and a car park never is.
+const VEHICLE_ART = {
+  CAR:  ['assets/vehicles/car-dark.webp', 'assets/vehicles/car-silver.webp'],
+  SUV:  ['assets/vehicles/suv-dark.webp', 'assets/vehicles/suv-silver.webp'],
+  BIKE: ['assets/vehicles/bike-dark.webp', 'assets/vehicles/bike-silver.webp'],
+};
+
+// Which paint a bay shows is derived from its ticket id, so it is stable
+// across refreshes and never reshuffles while the operator is looking at it.
+function paintFor(type, seed) {
+  const art = VEHICLE_ART[type] || VEHICLE_ART.CAR;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return art[hash % art.length];
+}
 
 // A painted row longer than this wraps onto another strip, so a 40-bay row
 // does not turn into one very long line that has to be scrolled sideways.
@@ -168,14 +184,16 @@ function bayHtml(slot, selectedId, facing) {
   const id = `<span class="bay__id">${escapeHtml(slot.slotId)}</span>`;
   let inner;
   if (state === 'OCCUPIED') {
-    // Draw the vehicle that is actually parked, which is normally the type
-    // the bay takes but is read from the ticket rather than assumed.
-    const parked = slot.ticket ? slot.ticket.vehicleType : type;
-    inner = `<svg class="bay__vehicle" aria-hidden="true"><use href="${VEHICLE_SYMBOL[parked] || '#v-car'}"/></svg>${id}`;
+    // Draw the vehicle that is actually parked - read from the ticket rather
+    // than assumed from the bay, since a car may sit in an SUV bay.
+    const parked = (slot.ticket && slot.ticket.vehicleType) || type;
+    const art = paintFor(parked, (slot.ticket && slot.ticket.ticketId) || slot.slotId);
+    inner = `<img class="bay__vehicle" src="${art}" alt="" aria-hidden="true"
+                  draggable="false" loading="lazy" decoding="async">${id}`;
   } else if (state === 'RESERVED') {
-    inner = `${id}<svg class="bay__mark" aria-hidden="true"><use href="#i-clock"/></svg>`;
+    inner = `<svg class="bay__mark" aria-hidden="true"><use href="#i-clock"/></svg>${id}`;
   } else {
-    inner = `${id}<span class="bay__type" aria-hidden="true">${escapeHtml(type)}</span>`;
+    inner = id;
   }
 
   return `<button type="button" class="${classes.join(' ')}" data-slot="${escapeHtml(slot.slotId)}"
