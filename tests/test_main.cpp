@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -103,8 +104,8 @@ void useSmallLayout(ParkingLot& lot,
     }
 }
 
-Vehicle car(const std::string& plate) { return Vehicle(plate, VehicleType::CAR); }
-Vehicle bike(const std::string& plate) { return Vehicle(plate, VehicleType::BIKE); }
+Car car(const std::string& plate) { return Car(plate); }
+Bike bike(const std::string& plate) { return Bike(plate); }
 
 // ---------------------------------------------------------------------------
 // Billing
@@ -159,6 +160,63 @@ void testRegistrationValidation() {
     check(Vehicle::isValidContactNumber(""), "a blank contact number is allowed");
     check(Vehicle::isValidContactNumber("+91 98765-43210"), "a normal contact number is allowed");
     check(!Vehicle::isValidContactNumber("call me"), "letters in a contact number are rejected");
+}
+
+// ---------------------------------------------------------------------------
+// The vehicle hierarchy
+// ---------------------------------------------------------------------------
+
+void testVehicleKinds() {
+    group("Vehicles - one base class, three kinds");
+
+    ParkingSettings settings;              // the defaults: 10, 30 and 50 rupees
+    settings.bikeHourlyRatePaise = 1000;
+    settings.carHourlyRatePaise = 3000;
+    settings.suvHourlyRatePaise = 5000;
+
+    // Each kind is held through a pointer to the base class, so the call
+    // below is resolved at run time by the object, not at compile time by
+    // the type of the pointer. That is the whole point of the hierarchy.
+    std::vector<std::unique_ptr<Vehicle>> fleet;
+    fleet.push_back(Vehicle::create(VehicleType::CAR, "MH12AB1234"));
+    fleet.push_back(Vehicle::create(VehicleType::BIKE, "MH01XY0001"));
+    fleet.push_back(Vehicle::create(VehicleType::SUV, "MH20SU0002"));
+
+    checkEqualText(vehicleTypeToString(fleet[0]->type()), "CAR", "the first is a car");
+    checkEqualText(vehicleTypeToString(fleet[1]->type()), "BIKE", "the second is a bike");
+    checkEqualText(vehicleTypeToString(fleet[2]->type()), "SUV", "the third is an SUV");
+
+    checkEqual(fleet[0]->hourlyRate(settings), 3000, "the car charges the car rate");
+    checkEqual(fleet[1]->hourlyRate(settings), 1000, "the bike charges the bike rate");
+    checkEqual(fleet[2]->hourlyRate(settings), 5000, "the SUV charges the SUV rate");
+
+    // The shared half of the class works the same for all three.
+    checkEqualText(fleet[1]->registrationNumber(), "MH01XY0001",
+                   "the plate is kept by the base class");
+
+    Car named("MH99ZZ9999", "Priya Nair", "+91 98765 43210");
+    checkEqualText(named.ownerName(), "Priya Nair", "owner details are inherited too");
+    checkEqualText(named.contactNumber(), "+91 98765 43210", "and so is the contact number");
+
+    // And the rate a session is billed at comes from this same call, so the
+    // hierarchy is doing real work rather than sitting beside the program.
+    const fs::path directory = makeEmptyDirectory("vehicle-kinds");
+    FileManager files(directory.string());
+    ParkingLot lot(files);
+    check(lot.initialise(kBaseTime).ok, "the car park starts up");
+    useSmallLayout(lot, {{"A01", VehicleType::CAR}, {"E01", VehicleType::BIKE}});
+
+    EntryOutcome carEntry;
+    EntryOutcome bikeEntry;
+    check(lot.checkInWalkIn(car("MH12AB1234"), kBaseTime, carEntry).ok, "a car checks in");
+    check(lot.checkInWalkIn(bike("MH01XY0001"), kBaseTime, bikeEntry).ok, "a bike checks in");
+
+    ExitOutcome carExit;
+    ExitOutcome bikeExit;
+    check(lot.checkOut(carEntry.ticketId, kBaseTime + 3600, carExit).ok, "the car leaves");
+    check(lot.checkOut(bikeEntry.ticketId, kBaseTime + 3600, bikeExit).ok, "the bike leaves");
+    checkEqual(carExit.finalFeePaise, 3000, "the car was billed at its own rate");
+    checkEqual(bikeExit.finalFeePaise, 1000, "the bike was billed at its own rate");
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +292,7 @@ void testParkingOperations() {
     // No slot of that kind exists at all, which is a different problem
     // from the car park simply being full.
     EntryOutcome suvEntry;
-    Result noSuvSlot = lot.checkInWalkIn(Vehicle("MH20SU0001", VehicleType::SUV), kBaseTime, suvEntry);
+    Result noSuvSlot = lot.checkInWalkIn(Suv("MH20SU0001"), kBaseTime, suvEntry);
     check(!noSuvSlot.ok, "an SUV is refused when the layout has no SUV slots");
     checkEqualText(noSuvSlot.errorCode, "NO_COMPATIBLE_SLOT",
                    "a missing slot type reports NO_COMPATIBLE_SLOT");
@@ -655,7 +713,7 @@ void testOwnerNameIsChecked() {
 
     EntryOutcome refused;
     Result tooLong = lot.checkInWalkIn(
-        Vehicle("MH12AB1234", VehicleType::CAR, std::string(200, 'x')), kBaseTime, refused);
+        Car("MH12AB1234", std::string(200, 'x')), kBaseTime, refused);
     check(!tooLong.ok, "an entry with an over-long owner name is refused");
     checkEqualText(tooLong.errorCode, "INVALID_OWNER_NAME",
                    "it reports INVALID_OWNER_NAME");
@@ -1077,7 +1135,7 @@ void testReportsAndCsv() {
     useSmallLayout(trickyLot, {{"A01", VehicleType::CAR}});
     EntryOutcome tricky;
     check(trickyLot
-              .checkInWalkIn(Vehicle("MH12AB1234", VehicleType::CAR, "Sharma, Rahul \"Raj\""),
+              .checkInWalkIn(Car("MH12AB1234", "Sharma, Rahul \"Raj\""),
                              kBaseTime, tricky)
               .ok,
           "a vehicle with a comma and quotes in the owner name is checked in");
@@ -1096,6 +1154,7 @@ int main() {
 
     testBilling();
     testRegistrationValidation();
+    testVehicleKinds();
     testParkingOperations();
     testReservations();
     testReservationExpiry();

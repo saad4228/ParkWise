@@ -446,7 +446,8 @@ ParkingTicket ParkingLot::startSession(const Vehicle& vehicle,
                                        const std::string& slotId,
                                        Timestamp now,
                                        TicketSource source) {
-    const Paise rate = state_.settings.rateFor(vehicle.type());
+    // The vehicle answers for its own kind - see the subclasses in Vehicle.h.
+    const Paise rate = vehicle.hourlyRate(state_.settings);
     ParkingTicket ticket(makeId("PW"), vehicle, slotId, now, rate, source);
 
     ParkingSlot* slot = findSlotMutable(slotId);
@@ -469,45 +470,65 @@ void ParkingLot::cancelWaitingRequestFor(const std::string& registrationNumber) 
     }
 }
 
-Result ParkingLot::checkInWalkIn(const Vehicle& requested, Timestamp now, EntryOutcome& outcome) {
+// Walk-in entry and joining the queue both start the same way: clean up the
+// plate the operator typed, build the right kind of vehicle for it, and check
+// the three text fields. Keeping that in one place is what stops the two
+// paths from drifting apart.
+//
+// Returns nullptr and fills `error` when something is wrong with the details.
+std::unique_ptr<Vehicle> ParkingLot::acceptVehicle(const Vehicle& requested, Result& error) const {
     // Cleaning the plate here, rather than relying on the caller, is what
     // makes "mh 12-ab 1234" and "MH12AB1234" the same vehicle no matter
     // which screen or test the request came from.
-    const Vehicle vehicle(Vehicle::normalizeRegistration(requested.registrationNumber()),
-                          requested.type(), requested.ownerName(), requested.contactNumber());
+    auto vehicle = Vehicle::create(requested.type(),
+                                   Vehicle::normalizeRegistration(requested.registrationNumber()),
+                                   requested.ownerName(), requested.contactNumber());
 
-    if (!Vehicle::isValidRegistration(vehicle.registrationNumber())) {
-        return Result::failure("INVALID_REGISTRATION",
-                               "Enter a registration number of 4 to 15 letters and digits.");
+    if (!Vehicle::isValidRegistration(vehicle->registrationNumber())) {
+        error = Result::failure("INVALID_REGISTRATION",
+                                "Enter a registration number of 4 to 15 letters and digits.");
+        return nullptr;
     }
-    if (!Vehicle::isValidContactNumber(vehicle.contactNumber())) {
-        return Result::failure("INVALID_CONTACT",
-                               "The contact number may only contain digits, spaces, + and -.");
+    if (!Vehicle::isValidContactNumber(vehicle->contactNumber())) {
+        error = Result::failure("INVALID_CONTACT",
+                                "The contact number may only contain digits, spaces, + and -.");
+        return nullptr;
     }
-    if (!Vehicle::isValidOwnerName(vehicle.ownerName())) {
-        return Result::failure("INVALID_OWNER_NAME",
-                               "The owner name may be up to 60 characters and cannot contain "
-                               "line breaks.");
+    if (!Vehicle::isValidOwnerName(vehicle->ownerName())) {
+        error = Result::failure("INVALID_OWNER_NAME",
+                                "The owner name may be up to 60 characters and cannot contain "
+                                "line breaks.");
+        return nullptr;
     }
+    return vehicle;
+}
+
+Result ParkingLot::checkInWalkIn(const Vehicle& requested, Timestamp now, EntryOutcome& outcome) {
+    Result rejected;
+    const auto vehicle = acceptVehicle(requested, rejected);
+    if (!vehicle) {
+        return rejected;
+    }
+
 
     LotState previousState = state_;
     applyExpiries(now);
 
-    if (hasActiveSession(vehicle.registrationNumber())) {
+    if (hasActiveSession(vehicle->registrationNumber())) {
         state_ = previousState;
         return Result::failure("DUPLICATE_ACTIVE_REGISTRATION",
-                               vehicle.registrationNumber() +
+                               vehicle->registrationNumber() +
                                " is already parked here. Check it out before entering it again.");
     }
 
-    const ParkingSlot* slot = findAllocatableSlot(vehicle.type());
+    const ParkingSlot* slot = findAllocatableSlot(vehicle->type());
     if (slot == nullptr) {
         state_ = previousState;
         // Tell the operator which of the two problems it is, because the
         // screen offers the waiting list only when the lot is genuinely full.
         bool anySlotOfType = false;
         for (const ParkingSlot& candidate : state_.slots) {
-            if (candidate.accepts(vehicle.type())) {
+            if (candidate.accepts(vehicle->type())) {
                 anySlotOfType = true;
                 break;
             }
@@ -515,15 +536,15 @@ Result ParkingLot::checkInWalkIn(const Vehicle& requested, Timestamp now, EntryO
         if (!anySlotOfType) {
             return Result::failure("NO_COMPATIBLE_SLOT",
                                    "This car park has no slots for a " +
-                                   vehicleTypeToString(vehicle.type()) + ".");
+                                   vehicleTypeToString(vehicle->type()) + ".");
         }
         return Result::failure("LOT_FULL",
-                               "No free slot for a " + vehicleTypeToString(vehicle.type()) +
+                               "No free slot for a " + vehicleTypeToString(vehicle->type()) +
                                " right now. You can add this vehicle to the waiting queue.");
     }
 
-    ParkingTicket ticket = startSession(vehicle, slot->id(), now, TicketSource::WALK_IN);
-    cancelWaitingRequestFor(vehicle.registrationNumber());
+    ParkingTicket ticket = startSession(*vehicle, slot->id(), now, TicketSource::WALK_IN);
+    cancelWaitingRequestFor(vehicle->registrationNumber());
 
     Result saved = commitOrRollback(previousState);
     if (!saved.ok) {
@@ -557,16 +578,16 @@ void ParkingLot::offerSlotToQueue(const std::string& slotId, Timestamp now,
 
     // Copy the details out before the queue vector is touched again.
     const std::string requestId = waiting->id();
-    const Vehicle vehicle(waiting->registrationNumber(), waiting->vehicleType(),
-                          waiting->ownerName(), waiting->contactNumber());
+    const auto vehicle = Vehicle::create(waiting->vehicleType(), waiting->registrationNumber(),
+                                         waiting->ownerName(), waiting->contactNumber());
 
-    ParkingTicket ticket = startSession(vehicle, slotId, now, TicketSource::QUEUE);
+    ParkingTicket ticket = startSession(*vehicle, slotId, now, TicketSource::QUEUE);
     state_.queue.markAssigned(requestId, slotId, ticket.id());
 
     assignment.happened = true;
     assignment.requestId = requestId;
-    assignment.registrationNumber = vehicle.registrationNumber();
-    assignment.vehicleType = vehicleTypeToString(vehicle.type());
+    assignment.registrationNumber = vehicle->registrationNumber();
+    assignment.vehicleType = vehicleTypeToString(vehicle->type());
     assignment.slotId = slotId;
     assignment.ticketId = ticket.id();
 }
@@ -853,9 +874,9 @@ Result ParkingLot::checkInReservation(const std::string& reservationId,
                                "Slot " + slot->id() + " is unexpectedly occupied.");
     }
 
-    const Vehicle vehicle(existing->registrationNumber(), existing->vehicleType());
-    ParkingTicket ticket = startSession(vehicle, slot->id(), now, TicketSource::RESERVATION);
-    cancelWaitingRequestFor(vehicle.registrationNumber());
+    const auto vehicle = Vehicle::create(existing->vehicleType(), existing->registrationNumber());
+    ParkingTicket ticket = startSession(*vehicle, slot->id(), now, TicketSource::RESERVATION);
+    cancelWaitingRequestFor(vehicle->registrationNumber());
     findReservationMutable(reservationId)->checkIn(ticket.id());
 
     Result saved = commitOrRollback(previousState);
@@ -874,44 +895,34 @@ Result ParkingLot::checkInReservation(const std::string& reservationId,
 // ---------------------------------------------------------------------------
 
 Result ParkingLot::addToQueue(const Vehicle& requested, Timestamp now, QueueOutcome& outcome) {
-    const Vehicle vehicle(Vehicle::normalizeRegistration(requested.registrationNumber()),
-                          requested.type(), requested.ownerName(), requested.contactNumber());
+    Result rejected;
+    const auto vehicle = acceptVehicle(requested, rejected);
+    if (!vehicle) {
+        return rejected;
+    }
 
-    if (!Vehicle::isValidRegistration(vehicle.registrationNumber())) {
-        return Result::failure("INVALID_REGISTRATION",
-                               "Enter a registration number of 4 to 15 letters and digits.");
-    }
-    if (!Vehicle::isValidContactNumber(vehicle.contactNumber())) {
-        return Result::failure("INVALID_CONTACT",
-                               "The contact number may only contain digits, spaces, + and -.");
-    }
-    if (!Vehicle::isValidOwnerName(vehicle.ownerName())) {
-        return Result::failure("INVALID_OWNER_NAME",
-                               "The owner name may be up to 60 characters and cannot contain "
-                               "line breaks.");
-    }
 
     LotState previousState = state_;
     applyExpiries(now);
 
-    if (hasActiveSession(vehicle.registrationNumber())) {
+    if (hasActiveSession(vehicle->registrationNumber())) {
         state_ = previousState;
         return Result::failure("DUPLICATE_ACTIVE_REGISTRATION",
-                               vehicle.registrationNumber() + " is already parked here.");
+                               vehicle->registrationNumber() + " is already parked here.");
     }
-    if (state_.queue.hasWaitingRegistration(vehicle.registrationNumber())) {
+    if (state_.queue.hasWaitingRegistration(vehicle->registrationNumber())) {
         state_ = previousState;
         return Result::failure("DUPLICATE_QUEUE_REQUEST",
-                               vehicle.registrationNumber() + " is already in the waiting queue.");
+                               vehicle->registrationNumber() + " is already in the waiting queue.");
     }
-    if (findAllocatableSlot(vehicle.type()) != nullptr) {
+    if (findAllocatableSlot(vehicle->type()) != nullptr) {
         state_ = previousState;
         return Result::failure("SLOT_AVAILABLE",
                                "A slot is free for this vehicle, so park it instead of queueing.");
     }
 
-    QueueRequest request(makeId("QR"), vehicle.registrationNumber(), vehicle.type(),
-                         vehicle.ownerName(), vehicle.contactNumber(), now);
+    QueueRequest request(makeId("QR"), vehicle->registrationNumber(), vehicle->type(),
+                         vehicle->ownerName(), vehicle->contactNumber(), now);
     state_.queue.add(request);
 
     Result saved = commitOrRollback(previousState);

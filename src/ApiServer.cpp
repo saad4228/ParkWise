@@ -506,15 +506,16 @@ void ApiServer::handleVehicleEntry(const httplib::Request& request, httplib::Res
         return;
     }
 
-    const Vehicle vehicle(Vehicle::normalizeRegistration(registrationText), vehicleType,
-                          optionalBodyString(body, "ownerName"),
-                          optionalBodyString(body, "contactNumber"));
+    const auto vehicle = Vehicle::create(vehicleType,
+                                         Vehicle::normalizeRegistration(registrationText),
+                                         optionalBodyString(body, "ownerName"),
+                                         optionalBodyString(body, "contactNumber"));
 
     std::lock_guard<std::mutex> guard(stateLock_);
     const Timestamp now = TimeUtil::now();
 
     EntryOutcome outcome;
-    Result result = parkingLot_.checkInWalkIn(vehicle, now, outcome);
+    Result result = parkingLot_.checkInWalkIn(*vehicle, now, outcome);
     if (!result.ok) {
         sendResultError(response, result);
         return;
@@ -836,15 +837,16 @@ void ApiServer::handleAddToQueue(const httplib::Request& request, httplib::Respo
         return;
     }
 
-    const Vehicle vehicle(Vehicle::normalizeRegistration(registrationText), vehicleType,
-                          optionalBodyString(body, "ownerName"),
-                          optionalBodyString(body, "contactNumber"));
+    const auto vehicle = Vehicle::create(vehicleType,
+                                         Vehicle::normalizeRegistration(registrationText),
+                                         optionalBodyString(body, "ownerName"),
+                                         optionalBodyString(body, "contactNumber"));
 
     std::lock_guard<std::mutex> guard(stateLock_);
     const Timestamp now = TimeUtil::now();
 
     QueueOutcome outcome;
-    Result result = parkingLot_.addToQueue(vehicle, now, outcome);
+    Result result = parkingLot_.addToQueue(*vehicle, now, outcome);
     if (!result.ok) {
         sendResultError(response, result);
         return;

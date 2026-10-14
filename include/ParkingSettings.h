@@ -20,15 +20,6 @@ struct ParkingSettings {
 
     std::string currency = "INR";
 
-    Paise rateFor(VehicleType type) const {
-        switch (type) {
-            case VehicleType::BIKE: return bikeHourlyRatePaise;
-            case VehicleType::CAR:  return carHourlyRatePaise;
-            case VehicleType::SUV:  return suvHourlyRatePaise;
-        }
-        return carHourlyRatePaise;
-    }
-
     long long reservationGraceSeconds() const { return reservationGraceMinutes * 60; }
 
     // Used before saving a settings change from the browser.

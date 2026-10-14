@@ -10,6 +10,7 @@
 #include "Types.h"
 #include "Vehicle.h"
 
+#include <memory>
 #include <random>
 #include <string>
 #include <vector>
@@ -176,6 +177,11 @@ private:
     ParkingSlot* findSlotMutable(const std::string& slotId);
     ParkingTicket* findTicketMutable(const std::string& ticketId);
     Reservation* findReservationMutable(const std::string& reservationId);
+
+    // Cleans and checks the details the operator typed, and builds the right
+    // kind of Vehicle for them. Shared by walk-in entry and the waiting queue.
+    // Returns nullptr and fills `error` when the details are not acceptable.
+    std::unique_ptr<Vehicle> acceptVehicle(const Vehicle& requested, Result& error) const;
 
     bool hasActiveSession(const std::string& registrationNumber) const;
 

@@ -5,13 +5,29 @@
 namespace parkwise {
 
 Vehicle::Vehicle(const std::string& registrationNumber,
-                 VehicleType type,
                  const std::string& ownerName,
                  const std::string& contactNumber)
     : registrationNumber_(registrationNumber),
-      type_(type),
       ownerName_(ownerName),
       contactNumber_(contactNumber) {}
+
+// The one place in the program that turns a stored VehicleType into an
+// object. Everywhere else works through Vehicle and never asks what kind it
+// is holding.
+std::unique_ptr<Vehicle> Vehicle::create(VehicleType type,
+                                         const std::string& registrationNumber,
+                                         const std::string& ownerName,
+                                         const std::string& contactNumber) {
+    switch (type) {
+        case VehicleType::BIKE:
+            return std::make_unique<Bike>(registrationNumber, ownerName, contactNumber);
+        case VehicleType::SUV:
+            return std::make_unique<Suv>(registrationNumber, ownerName, contactNumber);
+        case VehicleType::CAR:
+            break;
+    }
+    return std::make_unique<Car>(registrationNumber, ownerName, contactNumber);
+}
 
 std::string Vehicle::normalizeRegistration(const std::string& raw) {
     std::string cleaned;
