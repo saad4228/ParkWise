@@ -18,9 +18,9 @@ import { ticketPanel, printTicket } from '../ticket.js';
 import { rowPreviewHtml } from '../facility.js';
 
 const TYPES = [
-  { value: 'CAR', label: 'Car', symbol: '#v-car' },
-  { value: 'BIKE', label: 'Bike', symbol: '#v-bike' },
-  { value: 'SUV', label: 'SUV', symbol: '#v-suv' },
+  { value: 'CAR', label: 'Car', art: 'assets/vehicles/car-dark.webp' },
+  { value: 'BIKE', label: 'Bike', art: 'assets/vehicles/bike-dark.webp' },
+  { value: 'SUV', label: 'SUV', art: 'assets/vehicles/suv-dark.webp' },
 ];
 
 export async function render(container, ctx) {
@@ -56,7 +56,8 @@ export async function render(container, ctx) {
                   <label class="type-option">
                     <input type="radio" name="vehicleType" value="${type.value}" ${index === 0 ? 'checked' : ''}>
                     <span class="type-option__box">
-                      <svg class="type-option__vehicle" aria-hidden="true"><use href="${type.symbol}"/></svg>
+                      <img class="type-option__vehicle" src="${type.art}" alt="" aria-hidden="true"
+                           draggable="false" decoding="async">
                       <span class="type-option__text">
                         <span class="type-option__name">${type.label}</span>
                         <span class="type-option__free" data-free="${type.value}">&nbsp;</span>

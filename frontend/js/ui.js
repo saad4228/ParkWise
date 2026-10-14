@@ -4,7 +4,7 @@
 // not a framework. Keeping them here means every screen gets the same
 // buttons, badges, tables, empty states and dialogs without copying markup.
 
-import { escapeHtml, vehicleIconId, vehicleTypeLabel } from './format.js';
+import { escapeHtml } from './format.js';
 
 // ---------------------------------------------------------------------------
 // Small building blocks
@@ -31,7 +31,9 @@ export function statCard({ label, value, hint, iconId, tone = 'info', href, extr
 
 const BADGE_TONES = {
   ACTIVE: 'info', COMPLETED: 'ok',
-  AVAILABLE: 'ok', OCCUPIED: 'danger', RESERVED: 'info',
+  // The three bay states take the chart ramp's hues, so a badge, the summary
+  // donut and the map legend all say the same thing the same way.
+  AVAILABLE: 'bay-free', OCCUPIED: 'bay-busy', RESERVED: 'bay-held',
   UPCOMING: 'info', CHECKED_IN: 'ok', CANCELLED: 'muted', EXPIRED: 'warn',
   WAITING: 'warn', ASSIGNED: 'ok',
   WALK_IN: 'muted', RESERVATION: 'info', QUEUE: 'warn',
@@ -50,10 +52,6 @@ export function badge(state, overrideLabel) {
   const tone = BADGE_TONES[state] || 'muted';
   const label = overrideLabel || BADGE_LABELS[state] || state || '';
   return `<span class="badge badge--${tone}">${escapeHtml(label)}</span>`;
-}
-
-export function vehicleChip(type) {
-  return `<span class="badge badge--muted">${icon(vehicleIconId(type))}${escapeHtml(vehicleTypeLabel(type))}</span>`;
 }
 
 export function emptyState({ title, text, iconId = '#i-grid', actionHtml = '' }) {

@@ -301,18 +301,13 @@ svg { width: 20px; height: 20px; fill: none; color: inherit; }
 }
 
 /* The logo mark. It carries its own colour, so unlike the interface icons it
-   must not inherit the surrounding text colour - hence no fill here.
-
-   PLACEHOLDER: the current mark is the old green one, which breaks the
-   one-accent rule on this palette. Until the redrawn logo lands it is
-   desaturated to ink so the corner reads as deliberate rather than leftover.
-   Delete this filter when the new artwork arrives. */
+   must not inherit the surrounding text colour - hence no fill here. Its
+   green belongs to the same family as the accent, so it needs no adjusting
+   for either theme. */
 .brand-mark {
   width: 34px; height: 34px; flex: 0 0 34px;
   display: block;
-  filter: grayscale(1) brightness(.42) contrast(1.5);
 }
-:root[data-theme="dark"] .brand-mark { filter: grayscale(1) brightness(2.6) contrast(.9); }
 
 /* The wordmark is live text rather than part of the artwork: it stays
    selectable, searchable and crisp, and "Park" can follow the theme while
@@ -634,6 +629,18 @@ button.stat:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
 .badge--warn   { background: var(--warn-soft);    color: var(--warn-ink); }
 .badge--danger { background: var(--danger-soft);  color: var(--danger-ink); }
 .badge--muted  { background: var(--surface-sunk); color: var(--text-muted); }
+
+/* Bay states, matching the summary donut. The fill is a wash of the series
+   colour; the text is a darker step of the same hue, because the series
+   colour on its own wash only reaches about 3:1 - readable as a block, not
+   as 11px type. These steps clear 4.6:1 or better, and the dark theme uses
+   lighter steps over a deeper wash for the same reason. */
+.badge--bay-free { background: color-mix(in srgb, var(--cat-1) 14%, var(--surface)); color: #046B4C; }
+.badge--bay-busy { background: color-mix(in srgb, var(--cat-2) 14%, var(--surface)); color: #9A3708; }
+.badge--bay-held { background: color-mix(in srgb, var(--cat-3) 14%, var(--surface)); color: #1A4FC4; }
+:root[data-theme="dark"] .badge--bay-free { background: color-mix(in srgb, var(--cat-1) 18%, var(--surface)); color: #34D399; }
+:root[data-theme="dark"] .badge--bay-busy { background: color-mix(in srgb, var(--cat-2) 18%, var(--surface)); color: #FB923C; }
+:root[data-theme="dark"] .badge--bay-held { background: color-mix(in srgb, var(--cat-3) 18%, var(--surface)); color: #60A5FA; }
 
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -1366,10 +1373,11 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 .rail-card__body { padding: 12px 15px 14px; }
 
 /* The selected bay, at the top of the rail. */
-.bay-card { border-left: 4px solid var(--bay-card-edge, var(--border)); animation: panel-in .2s var(--ease); }
-.bay-card--available { --bay-card-edge: var(--state-free); }
-.bay-card--occupied  { --bay-card-edge: var(--state-busy); }
-.bay-card--reserved  { --bay-card-edge: var(--state-held); }
+/* No edge stripe at all. A border follows the card's radius and curls around
+   the corners, and an inset shadow tapers at them - either way it reads as a
+   stray mark rather than an accent. The status badge in the header already
+   says what the bay is, in the same colour the summary donut uses. */
+.bay-card { animation: panel-in .2s var(--ease); }
 .bay-card__title { display: flex; align-items: center; gap: 10px; }
 .bay-card__title strong { font-size: 20px; letter-spacing: -.02em; }
 .bay-card .detail-list > div { padding: 7px 0; font-size: 12.5px; }
@@ -1486,11 +1494,18 @@ button.log__row:hover .log__plate { color: var(--primary-ink); }
   transition: border-color .12s var(--ease), background-color .12s var(--ease), box-shadow .12s var(--ease);
 }
 .type-option:hover .type-option__box { border-color: var(--border-strong); }
+/* The same photographs the map parks in its bays, so the thing you pick
+   here is the thing you then see on the map. Sized to a common height
+   rather than to true scale: at tile size a to-scale motorcycle would be a
+   speck, and this is a chooser, not the map. */
 .type-option__vehicle {
-  width: 17px; height: 34px; flex: 0 0 17px;
-  color: var(--text-faint);
-  transition: color .12s var(--ease), transform .2s var(--ease);
+  height: 44px; width: auto; flex: 0 0 auto;
+  object-fit: contain;
+  opacity: .5;
+  transition: opacity .18s var(--ease), transform .22s var(--ease);
 }
+.type-option:hover .type-option__vehicle { opacity: .78; }
+.type-option input:checked + .type-option__box .type-option__vehicle { opacity: 1; }
 .type-option__text { display: flex; flex-direction: column; min-width: 0; }
 .type-option__name { font-weight: 600; font-size: 13.5px; }
 .type-option__free { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
@@ -1502,7 +1517,7 @@ button.log__row:hover .log__plate { color: var(--primary-ink); }
   box-shadow: 0 0 0 1px var(--primary);
 }
 .type-option input:checked + .type-option__box .type-option__vehicle {
-  color: var(--primary); transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.06);
 }
 .type-option input:focus-visible + .type-option__box { outline: 2px solid var(--primary); outline-offset: 2px; }
 
