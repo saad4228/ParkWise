@@ -21,18 +21,19 @@ disk — is implemented in **C++17** behind a small HTTP API.
 1. [What it does](#what-it-does)
 2. [Setting up the tools](#setting-up-the-tools)
 3. [Building and running](#building-and-running)
-4. [Running the tests](#running-the-tests)
-5. [Screens](#screens)
-6. [Architecture](#architecture)
-7. [The C++ classes](#the-c-classes)
-8. [How billing works](#how-billing-works)
-9. [How reservations and the queue interact](#how-reservations-and-the-queue-interact)
-10. [How data is stored](#how-data-is-stored)
-11. [API reference](#api-reference)
-12. [OOP concepts demonstrated](#oop-concepts-demonstrated)
-13. [A five minute demo](#a-five-minute-demo)
-14. [Known limitations](#known-limitations)
-15. [Project layout](#project-layout)
+4. [Publishing it](#publishing-it)
+5. [Running the tests](#running-the-tests)
+6. [Screens](#screens)
+7. [Architecture](#architecture)
+8. [The C++ classes](#the-c-classes)
+9. [How billing works](#how-billing-works)
+10. [How reservations and the queue interact](#how-reservations-and-the-queue-interact)
+11. [How data is stored](#how-data-is-stored)
+12. [API reference](#api-reference)
+13. [OOP concepts demonstrated](#oop-concepts-demonstrated)
+14. [A five minute demo](#a-five-minute-demo)
+15. [Known limitations](#known-limitations)
+16. [Project layout](#project-layout)
 
 ---
 
@@ -130,6 +131,8 @@ own without needing any compiler DLLs alongside it.
 | `--host <address>` | `127.0.0.1` | Interface to bind to |
 | `--data <folder>` | `data/` beside the project | Where records are stored |
 | `--frontend <folder>` | `frontend/` beside the project | Where the web files are |
+| `--demo` | off | Public copy: refuse settings changes, reset the records periodically |
+| `--reset-minutes <n>` | `30` | How often `--demo` resets. `0` never resets |
 
 The server binds to `127.0.0.1` on purpose: it is reachable only from this
 computer and is not exposed to the network.
@@ -156,6 +159,48 @@ start the server with `--data demo-data`.
 
 ---
 
+## Publishing it
+
+ParkWise has no user accounts — the brief placed them outside this version — so
+a copy on a public address would let any visitor change the rates or delete the
+slot layout. `--demo` is the answer to that without inventing a login system
+the rest of the program has no notion of:
+
+```
+parkwise --host 0.0.0.0 --demo --reset-minutes 30
+```
+
+| | |
+|---|---|
+| Parking, exits, bookings and the queue | **Work normally** — trying them is the point of publishing it |
+| `PUT /api/settings`, `POST /api/settings/backup` | **Refused** with `403 DEMO_READ_ONLY` |
+| The records | **Put back** to how they started every 30 minutes |
+
+The boundary is drawn there because a reset undoes a parked car soon enough to
+be harmless, but a visitor who empties the slot layout leaves the car park
+looking broken to everyone who arrives before the next reset.
+
+The rule is applied once, in a pre-routing handler in `ApiServer`, so no
+handler has to remember it and a route added later is covered without being
+told. The browser asks `GET /api/meta` as it loads, shows a **Demo** badge in
+the top bar, and renders the Settings screen read-only, so nothing is offered
+that the server will refuse.
+
+A `Dockerfile` is included. It compiles the program, **runs the test suite and
+fails the build if any check fails**, seeds a car park with `tools/seed_demo.py`,
+and starts in demo mode as a non-root user:
+
+```
+docker build -t parkwise .
+docker run -p 8080:8080 parkwise
+```
+
+cpp-httplib is built here without OpenSSL, so the program speaks plain HTTP.
+Put it behind a host that terminates TLS for you rather than exposing it
+directly.
+
+---
+
 ## Running the tests
 
 ```bat
@@ -167,14 +212,14 @@ or `build\bin\parkwise_tests.exe`, or `ctest --test-dir build`.
 The tests drive `ParkingLot` and its helpers directly, without a browser and
 without the HTTP server. They cover billing boundaries, entry and exit,
 reservation conflicts and expiry, queue ordering, settings validation, reports,
-CSV escaping, backup pruning and — most importantly — persistence: that records survive a
+CSV escaping, backup pruning, demo mode and — most importantly — persistence: that records survive a
 restart, that a damaged file is never silently wiped, and that a save which
 fails leaves nothing half-done.
 
 Current result:
 
 ```
-293 of 293 checks passed
+320 of 320 checks passed
 All checks passed.
 ```
 
@@ -283,6 +328,7 @@ unless it was written.
 | `JsonCodec` | `JsonCodec.h/.cpp` | Translates objects to and from JSON. One description of each record, shared by saving and by the API. |
 | `FileManager` | `FileManager.h/.cpp` | Reads and writes the data files safely. Makes no business decisions. |
 | `ApiServer` | `ApiServer.h/.cpp` | HTTP routes. Parses, delegates, formats. No parking logic. |
+| `DemoMode` | `DemoMode.h/.cpp` | What a published copy allows: which requests are refused, and putting the records back periodically. Off unless `--demo` is passed. |
 
 A full write-up with the reasoning behind each choice is in
 **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
@@ -568,7 +614,9 @@ These are deliberate boundaries for version 1, stated honestly rather than
 hidden:
 
 - **No authentication.** Anyone who can reach `127.0.0.1:8080` has full access.
-  The brief places user accounts outside this version's scope.
+  The brief places user accounts outside this version's scope. `--demo` narrows
+  what a stranger can do on a published copy, but it is not a login: it refuses
+  two endpoints and resets the records, nothing more.
 - **Single facility, single operator.** There is no concept of multiple car
   parks or of who performed an action.
 - **A slot accepts exactly one vehicle type.** A bike cannot use a spare car
@@ -610,8 +658,9 @@ ParkWise/
 ├── src/                    Implementations + main.cpp
 ├── tools/
 │   └── seed_demo.py        Writes a sample day into a data folder
+├── Dockerfile              Builds, tests, seeds and runs in demo mode
 ├── tests/
-│   └── test_main.cpp       293 business rule checks
+│   └── test_main.cpp       320 business rule checks
 ├── third_party/            cpp-httplib and nlohmann/json (header only)
 ├── frontend/
 │   ├── index.html

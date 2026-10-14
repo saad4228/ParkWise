@@ -37,6 +37,30 @@ Dependencies only ever point right. `ParkingLot` knows nothing about HTTP;
 
 ## Class by class
 
+### `DemoMode`
+
+Only relevant to a copy on a public address, and off everywhere else.
+
+ParkWise has no users, so it has nothing to authenticate. Putting it on the
+internet unchanged would make every visitor a full operator. Rather than bolt
+a login onto a program with no notion of accounts, `DemoMode` draws a smaller
+boundary and owns the whole of it: which requests are refused
+(`refuses(method, path)`), when the records are due to be put back
+(`dueForReset`), and the snapshot taken at start-up that they are put back
+from (`takeSnapshot` / `restoreSnapshot`).
+
+`ApiServer` consults it in a single pre-routing handler rather than in each
+handler, which is what makes the rule hard to forget: a route added later is
+covered without being told about it.
+
+The line it draws is about how long damage lasts. Parking a car is allowed,
+because the next reset clears it up and trying it is the reason for publishing
+the site at all. Changing the rates or the slot layout is refused, because a
+visitor who empties the layout leaves the car park looking broken to everyone
+arriving before the next reset.
+
+It is a blast radius, not a lock, and the README says so.
+
 ### `Vehicle`, `Car`, `Bike`, `Suv`
 
 A vehicle as the operator typed it: plate, optional owner name and contact

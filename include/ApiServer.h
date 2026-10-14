@@ -1,6 +1,7 @@
 #ifndef PARKWISE_API_SERVER_H
 #define PARKWISE_API_SERVER_H
 
+#include "DemoMode.h"
 #include "JsonCodec.h"
 #include "ParkingLot.h"
 
@@ -22,7 +23,8 @@ namespace parkwise {
 // same slot twice.
 class ApiServer {
 public:
-    ApiServer(ParkingLot& parkingLot, FileManager& fileManager, const std::string& frontendDirectory);
+    ApiServer(ParkingLot& parkingLot, FileManager& fileManager,
+              const std::string& frontendDirectory, DemoMode& demoMode);
 
     // Blocks until the server stops. Returns false if the port is taken.
     bool listen(const std::string& host, int port);
@@ -55,6 +57,12 @@ private:
     void handleGetSettings(const httplib::Request& request, httplib::Response& response);
     void handleUpdateSettings(const httplib::Request& request, httplib::Response& response);
     void handleBackupNow(const httplib::Request& request, httplib::Response& response);
+    void handleMeta(const httplib::Request& request, httplib::Response& response);
+
+    // Puts the records back to how they started if the demo interval has
+    // passed. Called before every request, so a visitor arriving after a
+    // quiet spell always finds the car park as it was meant to look.
+    void resetDemoIfDue();
 
     // ---- shared helpers ----
     static void sendJson(httplib::Response& response, int status, const Json& body);
@@ -81,6 +89,7 @@ private:
 
     ParkingLot& parkingLot_;
     FileManager& fileManager_;
+    DemoMode& demoMode_;
     std::string frontendDirectory_;
     httplib::Server server_;
     std::mutex stateLock_;

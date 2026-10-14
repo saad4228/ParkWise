@@ -125,6 +125,44 @@ did buy is that the *billing* question — the one that recurs in business logic
 is answered by the object itself. `Vehicle::create` is deliberately the only
 `switch` on vehicle type left in the vehicle code.
 
+**Q. The project has no login. What happens if you put it on the internet?**
+
+Without anything else, every visitor would be a full operator: they could park
+cars, cancel bookings, change the rates and replace the slot layout. The brief
+put user accounts outside this version, so rather than bolt a login onto a
+program with no notion of users, I drew a smaller boundary — the `DemoMode`
+class.
+
+A copy started with `--demo` keeps entry, exit, reservations and the queue
+working, because trying those is the whole point of publishing it, and refuses
+`PUT /settings` and `POST /settings/backup` with `403 DEMO_READ_ONLY`. The
+records are restored to their start-up state every thirty minutes.
+
+**Q. Why refuse those two and not the rest?**
+
+Because of how long the damage lasts. A visitor who parks a car leaves a mess
+the next reset clears up. A visitor who deletes the slot layout leaves the car
+park looking broken to everyone who arrives before that reset — the demo stops
+demonstrating anything.
+
+**Q. Where is that rule enforced?**
+
+In one place: a pre-routing handler in `ApiServer`, which runs before the
+routing table is consulted. No handler has to remember the rule, and a route
+added next year is covered without being told about it. The browser separately
+asks `GET /api/meta` when it loads, so the Settings screen can render itself
+read-only rather than offering a Save that would be refused — but that is
+courtesy, not security. The server refuses it either way, which the tests
+check by calling the endpoint directly.
+
+**Q. Is demo mode security?**
+
+No, and I would not claim it is. It is a blast radius, not a lock. Anyone can
+still fill the car park or cancel every booking. It makes a published copy
+survive strangers; it does not make the program multi-user. Real authentication
+would mean accounts, hashed passwords and sessions, and that is a different
+project.
+
 **Q. Why is `BillingService` all static methods?**
 
 Because billing has no state to keep. It is a pure calculation over the
@@ -348,11 +386,11 @@ trusted — the exit request sends only the ticket ID.
 
 **Q. How did you test it?**
 
-293 checks in `tests/test_main.cpp`, run with `test.bat`. They drive
+320 checks in `tests/test_main.cpp`, run with `test.bat`. They drive
 `ParkingLot` directly — no browser, no HTTP — covering billing boundaries,
 entry and exit, duplicate detection, a full facility, reservation conflicts and
 expiry, queue ordering and compatibility scanning, settings validation, reports,
-CSV escaping, backup pruning, and persistence across a simulated restart. On top of that there
+CSV escaping, backup pruning, demo mode, and persistence across a simulated restart. On top of that there
 is a browser test that walks every screen and performs a real entry, a duplicate
 attempt, a checkout and a reservation, checking for console errors and layout
 overflow.

@@ -33,6 +33,7 @@ add_library(parkwise_core STATIC
     src/FileManager.cpp
     src/ParkingLot.cpp
     src/ReportService.cpp
+    src/DemoMode.cpp
 )
 
 target_include_directories(parkwise_core PUBLIC

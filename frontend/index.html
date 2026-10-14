@@ -126,6 +126,12 @@
       </form>
 
       <div class="topbar__actions">
+        <!-- Shown only on a published copy, so nobody mistakes a demo anyone
+             can edit for a real car park's records. app.js reveals it. -->
+        <span class="demo-pill" id="demoPill" hidden>
+          <svg aria-hidden="true"><use href="#i-alert"/></svg>
+          <span>Demo</span>
+        </span>
         <!-- Whether the browser can reach the server right now. It turns red the
              moment a request fails, so a stale screen never looks live. -->
         <span class="live-pill" id="livePill" role="status" aria-live="polite">

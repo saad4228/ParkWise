@@ -9,6 +9,7 @@
 // dependency to install.
 
 #include "BillingService.h"
+#include "DemoMode.h"
 #include "FileManager.h"
 #include "ParkingLot.h"
 #include "ReportService.h"
@@ -1199,6 +1200,77 @@ void testBackupsArePruned() {
     check(fs::exists(folder), "the backup just taken is one of the survivors");
 }
 
+void testDemoMode() {
+    group("Demo mode - what a published copy allows");
+
+    const fs::path directory = makeEmptyDirectory("demo");
+
+    {
+        // A car park with one vehicle in it, which is what gets snapshotted.
+        FileManager files(directory.string());
+        ParkingLot lot(files);
+        check(lot.initialise(kBaseTime).ok, "a car park starts up");
+        useSmallLayout(lot, {{"A01", VehicleType::CAR}, {"A02", VehicleType::CAR}});
+        EntryOutcome entry;
+        check(lot.checkInWalkIn(car("MH12AB1234"), kBaseTime, entry).ok, "one car is parked");
+    }
+
+    DemoMode demo(true, 30, directory.string());
+    std::string problem;
+    check(demo.takeSnapshot(problem), "demo mode snapshots the records");
+    check(fs::exists(directory / ".demo-snapshot" / "tickets.json"),
+          "the snapshot holds a copy of the tickets");
+
+    // Settings and backups are the two a visitor must not have.
+    check(demo.refuses("PUT", "/api/settings"), "changing settings is refused");
+    check(demo.refuses("POST", "/api/settings/backup"), "taking a backup is refused");
+
+    // Everything a visitor came to try still goes through.
+    check(!demo.refuses("POST", "/api/vehicles/entry"), "parking a car is allowed");
+    check(!demo.refuses("POST", "/api/vehicles/exit"), "checking out is allowed");
+    check(!demo.refuses("POST", "/api/reservations"), "booking a bay is allowed");
+    check(!demo.refuses("POST", "/api/queue"), "joining the queue is allowed");
+    check(!demo.refuses("DELETE", "/api/queue/QR-1"), "leaving the queue is allowed");
+    check(!demo.refuses("GET", "/api/settings"), "reading the settings is allowed");
+
+    // A second car arrives, then the interval passes.
+    {
+        FileManager files(directory.string());
+        ParkingLot lot(files);
+        check(lot.initialise(kBaseTime).ok, "the car park is read back");
+        EntryOutcome entry;
+        check(lot.checkInWalkIn(car("MH99ZZ9999"), kBaseTime, entry).ok, "a visitor parks a car");
+        check(lot.occupiedSlotCount() == 2, "two cars are now parked");
+    }
+
+    check(!demo.dueForReset(kBaseTime), "no reset is due straight away");
+    const Timestamp later = TimeUtil::now() + 31 * 60;
+    check(demo.dueForReset(later), "a reset is due once the interval has passed");
+    check(demo.restoreSnapshot(later, problem), "the snapshot is put back");
+
+    {
+        FileManager files(directory.string());
+        ParkingLot lot(files);
+        check(lot.initialise(later).ok, "the car park loads the restored records");
+        check(lot.occupiedSlotCount() == 1, "the visitor's car is gone");
+        check(lot.findActiveTicketByRegistration("MH12AB1234") != nullptr,
+              "and the car that was there at start-up is back");
+    }
+
+    check(!demo.dueForReset(later), "the clock starts again after a reset");
+
+    // Off by default: someone's own copy is not restricted.
+    DemoMode off(false, 30, directory.string());
+    check(!off.refuses("PUT", "/api/settings"), "an ordinary copy allows settings changes");
+    check(!off.dueForReset(later + 86400), "and never resets itself");
+
+    // Resetting can be turned off while the write rules stay.
+    DemoMode noReset(true, 0, directory.string());
+    check(noReset.refuses("PUT", "/api/settings"), "0 minutes still refuses settings");
+    check(!noReset.dueForReset(later + 86400), "but never resets");
+    check(noReset.secondsUntilReset(later) == -1, "and reports no next reset");
+}
+
 int main() {
     std::cout << "ParkWise business rule tests\n";
     std::cout << "============================\n";
@@ -1222,6 +1294,7 @@ int main() {
     testSettingsProtectVehiclesAndBookings();
     testReportsAndCsv();
     testBackupsArePruned();
+    testDemoMode();
 
     std::cout << "\n============================\n";
     std::cout << checksRun - checksFailed << " of " << checksRun << " checks passed\n";

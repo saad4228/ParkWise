@@ -58,6 +58,7 @@ Every failure uses the same shape:
 | `RESERVATION_WINDOW_PASSED` | 409 | The grace period has run out |
 | `REGISTRATION_MISMATCH` | 409 | The plate does not match the booking |
 | `INVALID_QUEUE_STATE` | 409 | The request is no longer waiting |
+| `DEMO_READ_ONLY` | 403 | A public demo refuses settings changes and backups |
 | `PERSISTENCE_FAILED` | 500 | The change could not be saved, and was undone |
 | `DATA_INCONSISTENT` | 500 | Saved records contradict each other (startup only) |
 
@@ -447,6 +448,16 @@ refused, **nothing** changes.
 New rates apply only to sessions starting afterwards. Tickets already issued
 keep the rate captured when they were created.
 
+### `GET /meta`
+
+`200 OK` with `{ "demoMode": false, "resetMinutes": 30, "secondsUntilReset": -1,
+"serverTime": 1792001672 }`.
+
+What kind of copy of ParkWise this is. The browser asks once as it loads, so
+the shell can show a **Demo** badge and the Settings screen can render itself
+read-only rather than offering a Save the server would refuse.
+`secondsUntilReset` is `-1` when the records are never reset.
+
 ### `POST /settings/backup`
 
 `200 OK` with `{ "backedUpAt": 1791542324, "folderName": "backup-20261009-163000" }`.
@@ -456,3 +467,18 @@ name is returned; the full path stays on the server.
 The ten most recent backup folders are kept; taking a new one removes the
 oldest. A folder that cannot be removed does not fail the request — the backup
 itself has already succeeded by that point.
+
+## Demo mode
+
+A copy started with `--demo` refuses two endpoints, whatever the browser shows:
+
+| | |
+|---|---|
+| `PUT /settings` | `403` `DEMO_READ_ONLY` |
+| `POST /settings/backup` | `403` `DEMO_READ_ONLY` |
+
+Everything else — entry, exit, reservations, the queue — works normally, and
+the records are restored to their start-up state every `--reset-minutes`.
+
+The rule is applied in a pre-routing handler, before the routing table is
+consulted, so it covers any route added later without being told about it.

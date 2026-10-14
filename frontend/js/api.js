@@ -86,6 +86,9 @@ const postJson = (path, body) =>
   request(path, { method: 'POST', body: JSON.stringify(body || {}) });
 
 export const api = {
+  // What kind of copy of ParkWise this is. Asked once, when the shell loads.
+  meta:         () => getJson('/meta'),
+
   dashboard:    () => getJson('/dashboard'),
 
   slots:        () => getJson('/slots'),

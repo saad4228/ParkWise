@@ -6,6 +6,7 @@
 // front is kinder than a rejected save.
 
 import { api } from '../api.js';
+import { siteMode } from '../site.js';
 import { escapeHtml, dateTime } from '../format.js';
 import {
   icon, errorState, loadingState, withBusyButton, toast, toastError,
@@ -49,6 +50,16 @@ export async function render(container, ctx) {
             </div>
             <div class="card__body">
               <form id="settingsForm" novalidate>
+                ${siteMode.demo ? `
+                  <div class="demo-note">
+                    ${icon('#i-alert')}
+                    <span>This is a public demo, so rates and the slot layout are
+                    shown but cannot be saved${siteMode.resetMinutes > 0
+                      ? `, and the records go back to how they started every
+                         ${siteMode.resetMinutes} minutes`
+                      : ''}. Everything else on the site works normally.</span>
+                  </div>
+                ` : ''}
                 <div class="form-row">
                   <div class="field" data-field="bike">
                     <label class="field__label" for="rateBike">Hourly Rate — Bike (₹)</label>
@@ -90,7 +101,8 @@ export async function render(container, ctx) {
                 </p>
 
                 <div class="form-actions">
-                  <button class="btn btn--primary" type="submit" id="saveSettings">
+                  <button class="btn btn--primary" type="submit" id="saveSettings"
+                          ${siteMode.demo ? 'disabled title="Not available on the public demo"' : ''}>
                     ${icon('#i-check')}Save Changes
                   </button>
                   <button class="btn btn--ghost" type="button" id="revertSettings">Revert</button>
@@ -137,7 +149,8 @@ export async function render(container, ctx) {
               </dl>
 
               <div class="form-actions" style="margin-top:16px">
-                <button class="btn btn--ghost btn--block" id="backupNow">
+                <button class="btn btn--ghost btn--block" id="backupNow"
+                        ${siteMode.demo ? 'disabled title="Not available on the public demo"' : ''}>
                   ${icon('#i-download')}Back Up Now
                 </button>
               </div>
@@ -177,18 +190,22 @@ export async function render(container, ctx) {
 
   function renderSlotRows() {
     const editor = body.querySelector('#slotEditor');
+    // A row is frozen when the bay is in use or booked - and, on the public
+    // demo, always: the layout is there to look at, not to rebuild.
+    const frozen = (slot) => slot.locked || siteMode.demo;
     editor.innerHTML = slotRows.map((slot, index) => `
-      <div class="slot-editor__row ${slot.locked ? 'is-locked' : ''}" data-index="${index}">
+      <div class="slot-editor__row ${frozen(slot) ? 'is-locked' : ''}" data-index="${index}">
         <input class="input" value="${escapeHtml(slot.slotId)}" data-slot-id="${index}"
-               ${slot.locked ? 'disabled' : ''} aria-label="Slot ID">
-        <select class="select" data-slot-type="${index}" ${slot.locked ? 'disabled' : ''}
+               ${frozen(slot) ? 'disabled' : ''} aria-label="Slot ID">
+        <select class="select" data-slot-type="${index}" ${frozen(slot) ? 'disabled' : ''}
                 aria-label="Vehicle type for this slot">
           <option value="CAR" ${slot.supportedVehicleType === 'CAR' ? 'selected' : ''}>Car</option>
           <option value="BIKE" ${slot.supportedVehicleType === 'BIKE' ? 'selected' : ''}>Bike</option>
           <option value="SUV" ${slot.supportedVehicleType === 'SUV' ? 'selected' : ''}>SUV</option>
         </select>
-        ${slot.locked
-          ? `<span class="slot-editor__lock">${icon('#i-alert')}${slot.occupied ? 'In use' : 'Reserved'}</span>`
+        ${frozen(slot)
+          ? `<span class="slot-editor__lock">${icon('#i-alert')}${
+              slot.locked ? (slot.occupied ? 'In use' : 'Reserved') : 'Demo'}</span>`
           : `<button class="btn btn--subtle btn--sm" data-remove-slot="${index}"
                      aria-label="Remove slot ${escapeHtml(slot.slotId)}">${icon('#i-close')}</button>`}
       </div>`).join('');
@@ -217,7 +234,12 @@ export async function render(container, ctx) {
   function wire(data) {
     const form = body.querySelector('#settingsForm');
 
-    body.querySelector('#addSlot').addEventListener('click', () => {
+    const addSlot = body.querySelector('#addSlot');
+    if (siteMode.demo) {
+      addSlot.disabled = true;
+      addSlot.title = 'Not available on the public demo';
+    }
+    addSlot.addEventListener('click', () => {
       slotRows.push({ slotId: '', supportedVehicleType: 'CAR', occupied: false, locked: false });
       renderSlotRows();
       const inputs = body.querySelectorAll('[data-slot-id]');

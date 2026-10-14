@@ -1,0 +1,12 @@
+# The image builds the program from source and seeds its own records, so
+# nothing from a local build or a local car park belongs in the context.
+build/
+data/
+docs/
+*.exe
+*.o
+*.obj
+.git/
+.vs/
+.vscode/
+README.md

@@ -5,6 +5,7 @@
 // server only ever has to serve one HTML file and never needs URL rewriting.
 
 import { api, onConnectionChange } from './api.js';
+import { loadSiteMode } from './site.js';
 import { errorState, toast } from './ui.js';
 
 const ROUTES = {
@@ -304,9 +305,30 @@ document.getElementById('alertsButton').addEventListener('click', async () => {
   }
 });
 
+// --- what kind of copy this is --------------------------------------------
+
+// Reveals the Demo badge when the server says this is a published copy. The
+// badge matters: without it a visitor could take a car park anyone can edit
+// for a real one.
+async function showSiteMode() {
+  const mode = await loadSiteMode();
+  if (!mode.demo) return;
+
+  const pill = document.getElementById('demoPill');
+  if (!pill) return;
+  pill.hidden = false;
+  pill.title = mode.resetMinutes > 0
+    ? 'Public demo. Anyone can park and book here, and the records go back to '
+      + `how they started every ${mode.resetMinutes} minutes.`
+    : 'Public demo. Anyone can park and book here.';
+}
+
 // ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
+
+// Before the first screen renders, so Settings knows what it may offer.
+await showSiteMode();
 
 if (!window.location.hash) {
   window.location.hash = `#/${DEFAULT_ROUTE}`;

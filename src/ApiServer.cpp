@@ -56,9 +56,10 @@ bool readBodyNumber(const JsonCodec::Json& body, const char* key, long long& out
 } // namespace
 
 ApiServer::ApiServer(ParkingLot& parkingLot, FileManager& fileManager,
-                     const std::string& frontendDirectory)
+                     const std::string& frontendDirectory, DemoMode& demoMode)
     : parkingLot_(parkingLot),
       fileManager_(fileManager),
+      demoMode_(demoMode),
       frontendDirectory_(frontendDirectory) {
     registerRoutes();
 }
@@ -81,6 +82,7 @@ int ApiServer::httpStatusFor(const std::string& errorCode) {
         "TICKET_NOT_FOUND", "RESERVATION_NOT_FOUND", "QUEUE_REQUEST_NOT_FOUND", "SLOT_NOT_FOUND"};
     static const std::set<std::string> serverError = {"PERSISTENCE_FAILED", "DATA_INCONSISTENT"};
 
+    if (errorCode == "DEMO_READ_ONLY") return 403;
     if (badRequest.count(errorCode) > 0) return 400;
     if (notFound.count(errorCode) > 0) return 404;
     if (serverError.count(errorCode) > 0) return 500;
@@ -224,10 +226,26 @@ void ApiServer::registerRoutes() {
 
     server_.set_mount_point("/", frontendDirectory_);
 
+    // Demo mode is enforced here and nowhere else. Putting it in front of the
+    // routing table means no handler has to remember the rule, and a route
+    // added later is covered without being told about it.
+    server_.set_pre_routing_handler([this](const Req& rq, Res& rs) {
+        resetDemoIfDue();
+        if (demoMode_.refuses(rq.method, rq.path)) {
+            sendError(rs, "DEMO_READ_ONLY",
+                      "This is a public demo, so rates and the slot layout cannot be changed. "
+                      "Everything else on the site works normally.");
+            return httplib::Server::HandlerResponse::Handled;
+        }
+        return httplib::Server::HandlerResponse::Unhandled;
+    });
+
     // Nothing here is cached, so the browser always shows live records.
     server_.set_post_routing_handler([](const httplib::Request&, httplib::Response& response) {
         response.set_header("Cache-Control", "no-store");
     });
+
+    server_.Get("/api/meta", [this](const Req& rq, Res& rs) { handleMeta(rq, rs); });
 
     server_.Get("/api/dashboard", [this](const Req& rq, Res& rs) { handleDashboard(rq, rs); });
     server_.Get("/api/slots", [this](const Req& rq, Res& rs) { handleListSlots(rq, rs); });
@@ -1040,6 +1058,41 @@ void ApiServer::handleUpdateSettings(const httplib::Request& request, httplib::R
     saved["admittedFromQueue"] = admittedView(admitted);
     saved["summary"] = summaryView(now);
     sendJson(response, 200, saved);
+}
+
+// What the browser needs to know about this copy of ParkWise before it draws
+// anything: chiefly whether it is a public demo, so the shell can say so and
+// the Settings screen can show its fields without pretending they can be
+// saved.
+void ApiServer::handleMeta(const httplib::Request&, httplib::Response& response) {
+    std::lock_guard<std::mutex> guard(stateLock_);
+
+    Json body;
+    body["demoMode"] = demoMode_.enabled();
+    body["resetMinutes"] = demoMode_.minutesBetweenResets();
+    body["secondsUntilReset"] = demoMode_.secondsUntilReset(TimeUtil::now());
+    body["serverTime"] = TimeUtil::now();
+    sendJson(response, 200, body);
+}
+
+// Restores the snapshot taken at start-up and reloads the car park from it.
+//
+// A failure is deliberately quiet: the visitor asked for a screen, not for a
+// reset, and refusing to serve the screen because the records could not be
+// rolled back would turn a tidying problem into an outage. The stale records
+// are still perfectly serviceable.
+void ApiServer::resetDemoIfDue() {
+    std::lock_guard<std::mutex> guard(stateLock_);
+
+    const Timestamp now = TimeUtil::now();
+    if (!demoMode_.dueForReset(now)) {
+        return;
+    }
+
+    std::string problem;
+    if (demoMode_.restoreSnapshot(now, problem)) {
+        parkingLot_.initialise(now);
+    }
 }
 
 void ApiServer::handleBackupNow(const httplib::Request&, httplib::Response& response) {
