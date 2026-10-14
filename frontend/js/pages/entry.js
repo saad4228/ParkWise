@@ -12,7 +12,8 @@
 import { api, ApiError } from '../api.js';
 import { escapeHtml, vehicleTypeLabel } from '../format.js';
 import {
-  icon, fieldError, withBusyButton, toast, toastError, emptyState, confirmDialog,
+  icon, withBusyButton, toast, toastError, emptyState, confirmDialog,
+  showFieldError, clearFieldErrors,
 } from '../ui.js';
 import { ticketPanel, printTicket } from '../ticket.js';
 import { rowPreviewHtml } from '../facility.js';
@@ -255,19 +256,3 @@ function wirePrint(root, ticket) {
   root.querySelector('[data-print-ticket]')?.addEventListener('click', () => printTicket(ticket));
 }
 
-function showFieldError(form, name, message) {
-  const field = form.querySelector(`[data-field="${name}"]`);
-  if (!field) return;
-  field.classList.add('has-error');
-  field.querySelector('.field__error')?.remove();
-  field.insertAdjacentHTML('beforeend', fieldError(message));
-  field.querySelector('.input, .select')?.setAttribute('aria-invalid', 'true');
-}
-
-function clearFieldErrors(form) {
-  form.querySelectorAll('.field.has-error').forEach((field) => {
-    field.classList.remove('has-error');
-    field.querySelector('.field__error')?.remove();
-    field.querySelector('.input, .select')?.removeAttribute('aria-invalid');
-  });
-}

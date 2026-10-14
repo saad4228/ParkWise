@@ -9,7 +9,7 @@ import { api } from '../api.js';
 import { escapeHtml, dateTime } from '../format.js';
 import {
   icon, errorState, loadingState, withBusyButton, toast, toastError,
-  confirmDialog, fieldError,
+  confirmDialog, showFieldError, clearFieldErrors,
 } from '../ui.js';
 
 export async function render(container, ctx) {
@@ -335,17 +335,3 @@ function formatBytes(bytes) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function showFieldError(form, name, message) {
-  const field = form.querySelector(`[data-field="${name}"]`);
-  if (!field) return;
-  field.classList.add('has-error');
-  field.querySelector('.field__error')?.remove();
-  field.insertAdjacentHTML('beforeend', fieldError(message));
-}
-
-function clearFieldErrors(form) {
-  form.querySelectorAll('.field.has-error').forEach((field) => {
-    field.classList.remove('has-error');
-    field.querySelector('.field__error')?.remove();
-  });
-}

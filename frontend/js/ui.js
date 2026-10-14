@@ -84,6 +84,27 @@ export function fieldError(message) {
   return `<span class="field__error">${icon('#i-alert')}${escapeHtml(message)}</span>`;
 }
 
+// Marks one field of a form as wrong and shows why underneath it. Every form
+// screen reports mistakes the same way, so this lives here rather than in
+// four page files.
+export function showFieldError(form, name, message) {
+  const field = form.querySelector(`[data-field="${name}"]`);
+  if (!field) return;
+  field.classList.add('has-error');
+  field.querySelector('.field__error')?.remove();
+  field.insertAdjacentHTML('beforeend', fieldError(message));
+  field.querySelector('.input, .select')?.setAttribute('aria-invalid', 'true');
+}
+
+// Wipes every mark left by showFieldError, called before re-checking a form.
+export function clearFieldErrors(form) {
+  form.querySelectorAll('.field.has-error').forEach((field) => {
+    field.classList.remove('has-error');
+    field.querySelector('.field__error')?.remove();
+    field.querySelector('.input, .select')?.removeAttribute('aria-invalid');
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Toasts
 // ---------------------------------------------------------------------------

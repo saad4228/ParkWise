@@ -218,6 +218,10 @@ ApiServer::Json ApiServer::summaryView(Timestamp now) const {
 // ---------------------------------------------------------------------------
 
 void ApiServer::registerRoutes() {
+    // Short names purely so each route fits on one line below.
+    using Req = httplib::Request;
+    using Res = httplib::Response;
+
     server_.set_mount_point("/", frontendDirectory_);
 
     // Nothing here is cached, so the browser always shows live records.
@@ -225,86 +229,46 @@ void ApiServer::registerRoutes() {
         response.set_header("Cache-Control", "no-store");
     });
 
-    server_.Get("/api/dashboard", [this](const httplib::Request& request, httplib::Response& response) {
-        handleDashboard(request, response);
-    });
-    server_.Get("/api/slots", [this](const httplib::Request& request, httplib::Response& response) {
-        handleListSlots(request, response);
-    });
+    server_.Get("/api/dashboard", [this](const Req& rq, Res& rs) { handleDashboard(rq, rs); });
+    server_.Get("/api/slots", [this](const Req& rq, Res& rs) { handleListSlots(rq, rs); });
     server_.Get(R"(/api/slots/([A-Za-z0-9]+))",
-                [this](const httplib::Request& request, httplib::Response& response) {
-                    handleGetSlot(request, response);
-                });
+                [this](const Req& rq, Res& rs) { handleGetSlot(rq, rs); });
 
     server_.Post("/api/vehicles/entry",
-                 [this](const httplib::Request& request, httplib::Response& response) {
-                     handleVehicleEntry(request, response);
-                 });
+                 [this](const Req& rq, Res& rs) { handleVehicleEntry(rq, rs); });
     server_.Post("/api/vehicles/exit",
-                 [this](const httplib::Request& request, httplib::Response& response) {
-                     handleVehicleExit(request, response);
-                 });
+                 [this](const Req& rq, Res& rs) { handleVehicleExit(rq, rs); });
 
     // The lookup route is registered first so that "lookup" is not read as
     // a ticket id by the pattern below it.
     server_.Get("/api/tickets/lookup",
-                [this](const httplib::Request& request, httplib::Response& response) {
-                    handleTicketLookup(request, response);
-                });
+                [this](const Req& rq, Res& rs) { handleTicketLookup(rq, rs); });
     server_.Get(R"(/api/tickets/([A-Za-z0-9\-]+))",
-                [this](const httplib::Request& request, httplib::Response& response) {
-                    handleGetTicket(request, response);
-                });
+                [this](const Req& rq, Res& rs) { handleGetTicket(rq, rs); });
 
     server_.Get("/api/reservations",
-                [this](const httplib::Request& request, httplib::Response& response) {
-                    handleListReservations(request, response);
-                });
+                [this](const Req& rq, Res& rs) { handleListReservations(rq, rs); });
     server_.Post("/api/reservations",
-                 [this](const httplib::Request& request, httplib::Response& response) {
-                     handleCreateReservation(request, response);
-                 });
+                 [this](const Req& rq, Res& rs) { handleCreateReservation(rq, rs); });
     server_.Post(R"(/api/reservations/([A-Za-z0-9\-]+)/cancel)",
-                 [this](const httplib::Request& request, httplib::Response& response) {
-                     handleCancelReservation(request, response);
-                 });
+                 [this](const Req& rq, Res& rs) { handleCancelReservation(rq, rs); });
     server_.Post(R"(/api/reservations/([A-Za-z0-9\-]+)/check-in)",
-                 [this](const httplib::Request& request, httplib::Response& response) {
-                     handleCheckInReservation(request, response);
-                 });
+                 [this](const Req& rq, Res& rs) { handleCheckInReservation(rq, rs); });
 
-    server_.Get("/api/queue", [this](const httplib::Request& request, httplib::Response& response) {
-        handleListQueue(request, response);
-    });
-    server_.Post("/api/queue", [this](const httplib::Request& request, httplib::Response& response) {
-        handleAddToQueue(request, response);
-    });
+    server_.Get("/api/queue", [this](const Req& rq, Res& rs) { handleListQueue(rq, rs); });
+    server_.Post("/api/queue", [this](const Req& rq, Res& rs) { handleAddToQueue(rq, rs); });
     server_.Delete(R"(/api/queue/([A-Za-z0-9\-]+))",
-                   [this](const httplib::Request& request, httplib::Response& response) {
-                       handleCancelQueueRequest(request, response);
-                   });
+                   [this](const Req& rq, Res& rs) { handleCancelQueueRequest(rq, rs); });
 
-    server_.Get("/api/history", [this](const httplib::Request& request, httplib::Response& response) {
-        handleHistory(request, response);
-    });
-    server_.Get("/api/reports", [this](const httplib::Request& request, httplib::Response& response) {
-        handleReports(request, response);
-    });
+    server_.Get("/api/history", [this](const Req& rq, Res& rs) { handleHistory(rq, rs); });
+    server_.Get("/api/reports", [this](const Req& rq, Res& rs) { handleReports(rq, rs); });
     server_.Get("/api/exports/history.csv",
-                [this](const httplib::Request& request, httplib::Response& response) {
-                    handleExportHistoryCsv(request, response);
-                });
+                [this](const Req& rq, Res& rs) { handleExportHistoryCsv(rq, rs); });
 
-    server_.Get("/api/settings", [this](const httplib::Request& request, httplib::Response& response) {
-        handleGetSettings(request, response);
-    });
-    server_.Put("/api/settings", [this](const httplib::Request& request, httplib::Response& response) {
-        handleUpdateSettings(request, response);
-    });
+    server_.Get("/api/settings", [this](const Req& rq, Res& rs) { handleGetSettings(rq, rs); });
+    server_.Put("/api/settings", [this](const Req& rq, Res& rs) { handleUpdateSettings(rq, rs); });
     server_.Post("/api/settings/backup",
-                 [this](const httplib::Request& request, httplib::Response& response) {
-                     handleBackupNow(request, response);
-                 });
+                 [this](const Req& rq, Res& rs) { handleBackupNow(rq, rs); });
 
     // A request to an unknown /api path should read as JSON, not as the
     // single-page app's HTML.

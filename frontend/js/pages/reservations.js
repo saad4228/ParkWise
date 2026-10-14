@@ -11,7 +11,7 @@ import {
 } from '../format.js';
 import {
   icon, badge, emptyState, errorState, loadingState, dataTable,
-  withBusyButton, toast, toastError, confirmDialog, fieldError,
+  withBusyButton, toast, toastError, confirmDialog, showFieldError, clearFieldErrors,
 } from '../ui.js';
 
 export async function render(container, ctx) {
@@ -361,17 +361,3 @@ function announceAdmitted(result) {
   });
 }
 
-function showFieldError(form, name, message) {
-  const field = form.querySelector(`[data-field="${name}"]`);
-  if (!field) return;
-  field.classList.add('has-error');
-  field.querySelector('.field__error')?.remove();
-  field.insertAdjacentHTML('beforeend', fieldError(message));
-}
-
-function clearFieldErrors(form) {
-  form.querySelectorAll('.field.has-error').forEach((field) => {
-    field.classList.remove('has-error');
-    field.querySelector('.field__error')?.remove();
-  });
-}

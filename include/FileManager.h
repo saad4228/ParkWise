@@ -41,8 +41,6 @@ class FileManager {
 public:
     explicit FileManager(const std::string& dataDirectory);
 
-    const std::string& dataDirectory() const { return dataDirectory_; }
-
     // Creates the data folder if it is not there yet.
     bool ensureDataDirectory(std::string& errorMessage);
 

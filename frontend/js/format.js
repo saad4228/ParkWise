@@ -102,19 +102,6 @@ export function vehicleTypeLabel(type) {
   return { BIKE: 'Bike', CAR: 'Car', SUV: 'SUV' }[type] || type || '';
 }
 
-export function vehicleIconId(type) {
-  return { BIKE: '#i-bike', CAR: '#i-car', SUV: '#i-suv' }[type] || '#i-car';
-}
-
-export function titleCase(text) {
-  if (!text) return '';
-  return String(text)
-    .toLowerCase()
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
 // ---------------------------------------------------------------------------
 // datetime-local inputs <-> Unix seconds
 // ---------------------------------------------------------------------------

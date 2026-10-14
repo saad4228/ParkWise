@@ -29,9 +29,6 @@ public:
     void occupy(const std::string& ticketId);
     void release();
 
-    // Used by the settings screen when an operator re-labels a free slot.
-    void setSupportedType(VehicleType type) { supportedType_ = type; }
-
 private:
     std::string id_;
     VehicleType supportedType_ = VehicleType::CAR;
