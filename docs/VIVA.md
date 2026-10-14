@@ -42,6 +42,12 @@ save does the browser get a success reply.
 
 **Q. Which OOP concepts does this demonstrate?**
 
+- **Abstraction** — `Vehicle` is an abstract base class: `type()` and
+  `hourlyRate()` are pure virtual, so it cannot be instantiated.
+- **Inheritance** — `Car`, `Bike` and `Suv` each derive from `Vehicle` and
+  `override` both.
+- **Polymorphism** — `ParkingLot::startSession` calls
+  `vehicle.hourlyRate(settings)` without knowing which kind it holds.
 - **Encapsulation** — every entity keeps its data private and exposes
   behaviour. `ParkingTicket::complete()` is the only way to close a ticket and
   it returns `false` on a second attempt, so a repeated checkout is impossible
@@ -57,21 +63,67 @@ save does the browser get a success reply.
 - **File handling** — `std::ifstream` / `std::ofstream` in `FileManager`, with
   `std::filesystem` for the temp-file-then-rename save.
 
-**Q. Why is there no inheritance? Isn't that the point of an OOP project?**
+**Q. Show me the inheritance in this project.**
 
-I considered an abstract `Vehicle` base with `Car`, `Bike` and `SUV`
-subclasses, and decided against it deliberately. The three types differ in
-exactly one way — their hourly rate — and nothing in the system ever calls a
-method that behaves differently per type. A class hierarchy would add three
-files and a virtual call to replace a `switch` in `ParkingSettings::rateFor`,
-and adding a fourth type would *still* mean editing the settings, the JSON
-codec and the UI dropdown. So it buys nothing and costs readability.
+`Vehicle` in `include/Vehicle.h` is an abstract base class. It holds what every
+vehicle shares — the registration number, the optional owner name and contact,
+and the rules for validating them — and declares what differs as pure virtual:
 
-Inheritance earns its place when types genuinely behave differently. If the
-system grew a rule like "an SUV may use two adjacent bike slots" or
-"motorcycles are charged per half hour", that would be real polymorphic
-behaviour and I would introduce a hierarchy then. The reasoning is written down
-in the README so it reads as a decision, not an omission.
+```cpp
+virtual VehicleType type() const = 0;
+virtual Paise hourlyRate(const ParkingSettings& settings) const = 0;
+```
+
+`Car`, `Bike` and `Suv` each derive from it and `override` both. Because those
+two functions are `= 0`, `Vehicle` cannot be created on its own — the compiler
+refuses. Every vehicle in the car park is one of the three concrete kinds.
+
+**Q. Where does the polymorphism actually happen?**
+
+In `ParkingLot::startSession`, which is the one place a ticket is created:
+
+```cpp
+const Paise rate = vehicle.hourlyRate(state_.settings);
+```
+
+That line does not know whether it is holding a car, a bike or an SUV, and it
+does not need to. The object answers for itself. `testVehicleKinds` in
+`tests/test_main.cpp` proves it: it puts one of each into a
+`std::vector<std::unique_ptr<Vehicle>>`, calls the same method on each, and
+asserts three different rates come back.
+
+**Q. Why is the destructor virtual?**
+
+Because vehicles are owned through `std::unique_ptr<Vehicle>`. When that
+pointer goes out of scope it deletes through a base-class pointer, and without
+`virtual ~Vehicle()` only the base part would be destroyed. It is `= default`
+because there is nothing extra to clean up — the declaration exists for
+correctness, not for work.
+
+**Q. It didn't start this way, did it?**
+
+No, and that is worth saying plainly. The first version had `Vehicle` as a
+single concrete class with an `enum class` for the type, and the hourly rate
+came from a `switch` inside `ParkingSettings::rateFor`. It worked.
+
+What was wrong with it was *where the question lived*. Asking the settings
+object what a vehicle costs means the settings have to know about every kind of
+vehicle, and every new kind means editing a function that has nothing to do
+with it. The vehicle knows what it is, so the vehicle should answer. I removed
+`rateFor` entirely and replaced it with the virtual call above.
+
+**Q. So does adding a fourth vehicle type now only mean adding one class?**
+
+No — and I would rather say so than overclaim. Adding, say, a van means a new
+`Van : public Vehicle`, a new case in `Vehicle::create`, a new entry in the
+JSON codec's type strings, a new rate in `ParkingSettings`, and a new option in
+the UI dropdown. The hierarchy removed one `switch`, not all of them.
+
+The ones that remain are at the edges where the program meets stored text and a
+human being, and a type system cannot cross those for you. What the hierarchy
+did buy is that the *billing* question — the one that recurs in business logic —
+is answered by the object itself. `Vehicle::create` is deliberately the only
+`switch` on vehicle type left in the vehicle code.
 
 **Q. Why is `BillingService` all static methods?**
 
@@ -296,11 +348,11 @@ trusted — the exit request sends only the ticket ID.
 
 **Q. How did you test it?**
 
-269 checks in `tests/test_main.cpp`, run with `test.bat`. They drive
+293 checks in `tests/test_main.cpp`, run with `test.bat`. They drive
 `ParkingLot` directly — no browser, no HTTP — covering billing boundaries,
 entry and exit, duplicate detection, a full facility, reservation conflicts and
 expiry, queue ordering and compatibility scanning, settings validation, reports,
-CSV escaping, and persistence across a simulated restart. On top of that there
+CSV escaping, backup pruning, and persistence across a simulated restart. On top of that there
 is a browser test that walks every screen and performs a real entry, a duplicate
 attempt, a checkout and a reservation, checking for console errors and layout
 overflow.

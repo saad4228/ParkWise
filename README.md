@@ -134,6 +134,26 @@ own without needing any compiler DLLs alongside it.
 The server binds to `127.0.0.1` on purpose: it is reachable only from this
 computer and is not exposed to the network.
 
+### Filling the car park with sample records
+
+A fresh clone starts with an empty car park, because `data/` holds live records
+and is not kept in version control. To see the dashboard, reports and charts
+with something in them:
+
+```
+python tools/seed_demo.py data
+```
+
+That writes a believable day: around 30 vehicles parked, roughly 140 finished
+sessions over the past week, three upcoming bookings, and one bike waiting
+because every bike bay is full. Every record is one the server itself could
+have produced — the fees follow the started-hour rule, and the bike is only in
+the queue because row E really is full.
+
+It **replaces** whatever is in the folder it is given, so point it somewhere
+else (`python tools/seed_demo.py demo-data`) if the current records matter, and
+start the server with `--data demo-data`.
+
 ---
 
 ## Running the tests
@@ -147,14 +167,14 @@ or `build\bin\parkwise_tests.exe`, or `ctest --test-dir build`.
 The tests drive `ParkingLot` and its helpers directly, without a browser and
 without the HTTP server. They cover billing boundaries, entry and exit,
 reservation conflicts and expiry, queue ordering, settings validation, reports,
-CSV escaping and — most importantly — persistence: that records survive a
+CSV escaping, backup pruning and — most importantly — persistence: that records survive a
 restart, that a damaged file is never silently wiped, and that a save which
 fails leaves nothing half-done.
 
 Current result:
 
 ```
-269 of 269 checks passed
+293 of 293 checks passed
 All checks passed.
 ```
 
@@ -174,6 +194,11 @@ All checks passed.
 | ![History](docs/screenshots/history.png) | ![Reports](docs/screenshots/reports.png) |
 | **Settings** — rates, grace period, slot layout | **Dark theme** — toggled from the top bar |
 | ![Settings](docs/screenshots/settings.png) | ![Dark](docs/screenshots/dashboard-dark.png) |
+
+A ticket can be printed straight from the browser after check-in. The print
+stylesheet drops the interface and leaves only the receipt:
+
+<img src="docs/screenshots/print-ticket.png" alt="Printable parking ticket" width="330">
 
 ---
 
@@ -246,7 +271,7 @@ unless it was written.
 
 | Class | File | Responsibility |
 |---|---|---|
-| `Vehicle` | `Vehicle.h/.cpp` | A vehicle's details, plus the one shared place where registration numbers are cleaned up and validated. |
+| `Vehicle` (+ `Car`, `Bike`, `Suv`) | `Vehicle.h/.cpp` | Abstract base: the plate and owner details every vehicle has, plus the one shared place where registration numbers are cleaned up and validated. Each subclass answers for its own type and hourly rate. |
 | `ParkingSlot` | `ParkingSlot.h/.cpp` | One physical space: which vehicle type it takes and whether something is standing in it. It knows nothing about reservations. |
 | `ParkingTicket` | `ParkingTicket.h/.cpp` | One session, entry to exit. Captures the hourly rate at entry, which is why later price changes leave old bills alone. |
 | `Reservation` | `Reservation.h/.cpp` | A booking over a half-open interval `[start, end)`, with explicit states and guarded transitions. |
@@ -360,7 +385,9 @@ Records live in `data/`, outside the frontend folder, in four JSON files:
 | `queue.json` | Waiting, assigned and cancelled requests |
 
 Alongside them, `data/backups/` holds dated folders created by **Back Up Now**,
-and each file has a `.bak` sibling holding the previous good version.
+and each file has a `.bak` sibling holding the previous good version. Only the
+ten most recent backup folders are kept — each new one removes the oldest, so
+the data folder cannot grow without limit.
 
 ### What protects the records
 
@@ -418,6 +445,18 @@ to the browser.
 
 ## OOP concepts demonstrated
 
+**Abstraction and inheritance.** `Vehicle` is an abstract base class — it
+declares `type()` and `hourlyRate()` as pure virtual and so cannot be created
+on its own. `Car`, `Bike` and `Suv` each inherit from it and answer for their
+own kind. The destructor is `virtual` because vehicles are held and destroyed
+through `std::unique_ptr<Vehicle>`.
+
+**Polymorphism.** `ParkingLot::startSession` asks `vehicle.hourlyRate(settings)`
+without knowing which kind of vehicle it holds, and gets the right rate back.
+`testVehicleKinds` in the test suite proves it: it puts a `Car`, a `Bike` and
+an `Suv` into one `std::vector<std::unique_ptr<Vehicle>>` and asserts that the
+same call returns three different rates.
+
 **Encapsulation.** Every entity keeps its data private and exposes behaviour.
 `ParkingTicket::complete()` is the only way a ticket can be closed, and it
 refuses a second attempt — which is what makes a repeated checkout impossible
@@ -443,20 +482,62 @@ with `std::filesystem` for the temporary-file-then-rename dance.
 because billing has no state to keep — it is a calculation over its arguments.
 Making it an object with nothing in it would be ceremony without benefit.
 
-### Why there is no inheritance
+### How the Vehicle hierarchy came about
 
-The brief asks for this to be justified rather than assumed, so: an abstract
-`Vehicle` base with `Car`, `Bike` and `SUV` subclasses was considered and
-rejected. The three types differ in exactly one way — their hourly rate — and
-nothing in the system ever needs to call a method that behaves differently per
-type. A base class would add three files and a virtual call to replace a
-`switch` in `ParkingSettings::rateFor`, and every new type would still require
-editing the settings, the JSON codec and the UI dropdown. Composition and a
-plain `enum class` express the same thing with less to read.
+The first version did not have one. `Vehicle` was a single concrete class, the
+type was an `enum class`, and the hourly rate came from a `switch` inside
+`ParkingSettings::rateFor`. That worked, and for a while I defended it: the
+three types differed in exactly one value, so a hierarchy looked like ceremony.
 
-Inheritance earns its place when different types genuinely *behave*
-differently. Here they do not, and adding it to show that I can would make the
-program harder to follow — which the brief lists as the thing to avoid.
+What changed my mind was watching where the `switch` wanted to spread. Asking
+`ParkingSettings` what a vehicle costs puts the question in the wrong place —
+the settings object has to know about every kind of vehicle that exists, and
+each new kind means editing a function that has nothing to do with that kind.
+The vehicle is the thing that knows what it is; it should be the thing that
+answers.
+
+So `Vehicle` is now an abstract base. It holds what every vehicle shares — the
+plate, the owner details, the rules for validating them — and declares what
+differs as pure virtual:
+
+```cpp
+class Vehicle {
+public:
+    virtual ~Vehicle() = default;
+    virtual VehicleType type() const = 0;
+    virtual Paise hourlyRate(const ParkingSettings& settings) const = 0;
+    // ... plate, owner, contact, and the shared validation helpers
+};
+
+class Suv : public Vehicle {
+public:
+    using Vehicle::Vehicle;
+    VehicleType type() const override { return VehicleType::SUV; }
+    Paise hourlyRate(const ParkingSettings& s) const override {
+        return s.suvHourlyRatePaise;
+    }
+};
+```
+
+`ParkingSettings::rateFor` is gone. `ParkingLot::startSession` now says
+
+```cpp
+const Paise rate = vehicle.hourlyRate(state_.settings);
+```
+
+— one line that gives three different answers depending on what is parked, and
+needs no change at all when a fourth kind of vehicle is added.
+
+**What it did and did not buy.** It removed one `switch` and replaced it with
+one virtual call. It did *not* remove the others: the JSON codec still has to
+turn the string `"SUV"` into something, and the UI dropdown still lists three
+options. Those are boundaries where the program meets stored text and a human,
+and a type system cannot cross them for you. `Vehicle::create(...)` is the
+single factory where that crossing happens, and it is deliberately the only
+`switch` on vehicle type left in the vehicle code.
+
+The honest summary is that the hierarchy is small, and it earns its place by
+putting one question with the object that can answer it — not by being large.
 
 ---
 
@@ -527,8 +608,10 @@ ParkWise/
 │   └── screenshots/
 ├── include/                One header per class
 ├── src/                    Implementations + main.cpp
+├── tools/
+│   └── seed_demo.py        Writes a sample day into a data folder
 ├── tests/
-│   └── test_main.cpp       269 business rule checks
+│   └── test_main.cpp       293 business rule checks
 ├── third_party/            cpp-httplib and nlohmann/json (header only)
 ├── frontend/
 │   ├── index.html
@@ -536,7 +619,8 @@ ParkWise/
 │   │   ├── logo-mark.svg   The mark on its own
 │   │   ├── logo.svg        Full lockup, light backgrounds
 │   │   ├── logo-dark.svg   Full lockup, dark backgrounds
-│   │   └── favicon.svg     The mark on a brand tile, for browser tabs
+│   │   ├── favicon.svg     The mark on a brand tile, for browser tabs
+│   │   └── vehicles/       Top-down car, bike and SUV renders for the map
 │   ├── css/styles.css      The whole design system
 │   └── js/
 │       ├── app.js          Routing and shell

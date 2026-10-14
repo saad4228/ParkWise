@@ -37,12 +37,37 @@ Dependencies only ever point right. `ParkingLot` knows nothing about HTTP;
 
 ## Class by class
 
-### `Vehicle`
+### `Vehicle`, `Car`, `Bike`, `Suv`
 
-A vehicle as the operator typed it: plate, type, and optional owner name and
-contact number.
+A vehicle as the operator typed it: plate, optional owner name and contact
+number — and, from the subclass, what kind of vehicle it is.
 
-Its two static helpers matter more than the object itself:
+`Vehicle` is abstract. Two things differ between kinds, and both are declared
+pure virtual so that each subclass must answer:
+
+```cpp
+virtual VehicleType type() const = 0;
+virtual Paise hourlyRate(const ParkingSettings& settings) const = 0;
+```
+
+The subclasses are three lines each, inheriting the base constructor with
+`using Vehicle::Vehicle`. The destructor is `virtual` because vehicles are
+owned through `std::unique_ptr<Vehicle>`.
+
+**Why this replaced an enum and a switch.** The rate used to come from
+`ParkingSettings::rateFor(VehicleType)`. That put the question in the wrong
+object: the settings had to know about every kind of vehicle that exists, and
+a new kind meant editing a function unrelated to it. `ParkingLot::startSession`
+now asks the vehicle itself, and `rateFor` is gone.
+
+What it did not do is remove every `switch` on vehicle type — the JSON codec
+still parses the string `"SUV"`, and the UI still lists three options. Those
+sit at the edges where the program meets stored text and a person.
+`Vehicle::create(...)` is the single factory that turns a stored `VehicleType`
+back into an object, and it is deliberately the only such `switch` left in the
+vehicle code.
+
+Its static helpers matter as much as the objects themselves:
 
 ```cpp
 static std::string normalizeRegistration(const std::string& raw);

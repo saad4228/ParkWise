@@ -389,8 +389,40 @@ bool FileManager::backupNow(std::string& errorMessage, std::string& outBackupFol
         return false;
     }
 
+    pruneOldBackups();
+
     outBackupFolder = folder.string();
     return true;
+}
+
+// Backup folders are named backup-<date>-<time>, so sorting their names
+// sorts them by age. Everything past the newest kBackupsToKeep is removed.
+//
+// A failure here is ignored on purpose: the backup itself has already
+// succeeded, and refusing to report that because an old folder could not be
+// deleted would be the wrong trade.
+void FileManager::pruneOldBackups() const {
+    std::error_code code;
+    const fs::path root = fs::path(dataDirectory_) / kBackupsFolder;
+
+    std::vector<fs::path> folders;
+    for (const fs::directory_entry& entry : fs::directory_iterator(root, code)) {
+        if (code) {
+            return;
+        }
+        if (entry.is_directory(code) && entry.path().filename().string().rfind("backup-", 0) == 0) {
+            folders.push_back(entry.path());
+        }
+    }
+    if (static_cast<int>(folders.size()) <= kBackupsToKeep) {
+        return;
+    }
+
+    std::sort(folders.begin(), folders.end());
+    const std::size_t removeCount = folders.size() - static_cast<std::size_t>(kBackupsToKeep);
+    for (std::size_t index = 0; index < removeCount; index++) {
+        fs::remove_all(folders[index], code);
+    }
 }
 
 Timestamp FileManager::lastBackupTime() const {

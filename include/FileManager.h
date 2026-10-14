@@ -52,8 +52,13 @@ public:
     // while the previous records are still untouched.
     bool save(const StoredData& data, std::string& errorMessage);
 
-    // Copies the current files into data/backups/backup-<date>-<time>/.
+    // Copies the current files into data/backups/backup-<date>-<time>/,
+    // then deletes all but the newest kBackupsToKeep folders.
     bool backupNow(std::string& errorMessage, std::string& outBackupFolder);
+
+    // How many backup folders are kept. Older ones are removed as new ones
+    // are taken, so the data folder cannot grow without limit.
+    static const int kBackupsToKeep = 10;
 
     // 0 when no backup has been taken yet.
     Timestamp lastBackupTime() const;
@@ -88,6 +93,9 @@ private:
     bool loadTickets(StoredData& outData, bool& existed, std::string& errorMessage) const;
     bool loadReservations(StoredData& outData, bool& existed, std::string& errorMessage) const;
     bool loadQueue(StoredData& outData, bool& existed, std::string& errorMessage) const;
+
+    // Keeps the backups folder from growing without limit.
+    void pruneOldBackups() const;
 
     std::string dataDirectory_;
 };

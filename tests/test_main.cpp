@@ -15,6 +15,7 @@
 #include "TimeUtil.h"
 #include "Vehicle.h"
 
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -110,6 +111,16 @@ Bike bike(const std::string& plate) { return Bike(plate); }
 // ---------------------------------------------------------------------------
 // Billing
 // ---------------------------------------------------------------------------
+
+int countBackupFolders(const fs::path& root) {
+    int total = 0;
+    for (const fs::directory_entry& entry : fs::directory_iterator(root)) {
+        if (entry.is_directory()) {
+            total++;
+        }
+    }
+    return total;
+}
 
 void testBilling() {
     group("Billing - hourly ceiling");
@@ -1123,7 +1134,16 @@ void testReportsAndCsv() {
                    "a formula with a comma is both marked and quoted");
 
     const std::string csv = ReportService::toCsv(ReportService::filterHistory(lot, all));
-    check(csv.find("Ticket ID,Registration Number") == 0, "the CSV starts with a header row");
+
+    // The file opens with a UTF-8 byte-order mark so that a spreadsheet reads
+    // an owner name written in a local script correctly, and the header row
+    // follows immediately after it.
+    const std::string bom = {static_cast<char>(0xEF),
+                             static_cast<char>(0xBB),
+                             static_cast<char>(0xBF)};
+    check(csv.rfind(bom, 0) == 0, "the CSV starts with a UTF-8 byte-order mark");
+    check(csv.find("Ticket ID,Registration Number") == bom.size(),
+          "the header row follows the mark");
     check(csv.find("MH12AB1234") != std::string::npos, "the CSV contains the finished session");
     check(csv.find("MH01XY0001") != std::string::npos, "the CSV contains the active session");
 
@@ -1148,6 +1168,37 @@ void testReportsAndCsv() {
 
 } // namespace
 
+void testBackupsArePruned() {
+    group("Backups - the folder cannot grow without limit");
+
+    const fs::path directory = makeEmptyDirectory("backups");
+    FileManager files(directory.string());
+    ParkingLot lot(files);
+    check(lot.initialise(kBaseTime).ok, "a car park starts up");
+
+    // Backup folders are named to the second, so taking several in a row would
+    // land in the same folder. The names are made directly instead, which is
+    // what matters: pruning works off the names, not off the clock.
+    const fs::path root = directory / "backups";
+    fs::create_directories(root);
+    for (int day = 1; day <= 15; day++) {
+        char name[32];
+        std::snprintf(name, sizeof(name), "backup-202610%02d-120000", day);
+        fs::create_directories(root / name);
+    }
+    check(countBackupFolders(root) == 15, "fifteen old backups are sitting in the folder");
+
+    std::string problem;
+    std::string folder;
+    check(files.backupNow(problem, folder), "a new backup is taken");
+
+    const int kept = countBackupFolders(root);
+    check(kept == FileManager::kBackupsToKeep, "only the newest ten are kept");
+    check(fs::exists(root / "backup-20261015-120000"), "the newest of the old ones survived");
+    check(!fs::exists(root / "backup-20261001-120000"), "the oldest was removed");
+    check(fs::exists(folder), "the backup just taken is one of the survivors");
+}
+
 int main() {
     std::cout << "ParkWise business rule tests\n";
     std::cout << "============================\n";
@@ -1170,6 +1221,7 @@ int main() {
     testTariffChangeDoesNotRewriteOldBills();
     testSettingsProtectVehiclesAndBookings();
     testReportsAndCsv();
+    testBackupsArePruned();
 
     std::cout << "\n============================\n";
     std::cout << checksRun - checksFailed << " of " << checksRun << " checks passed\n";

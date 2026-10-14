@@ -386,6 +386,10 @@ Takes the same `search`, `status`, `from` and `to` as `/history`, and returns
 every matching row — not just the current page. Served as
 `text/csv; charset=utf-8` with a `Content-Disposition` attachment header.
 
+The body begins with a UTF-8 byte-order mark (`EF BB BF`). Owner names may be
+written in a local script, and without the mark a spreadsheet assumes the
+system code page and mangles them.
+
 Columns: Ticket ID, Registration Number, Vehicle Type, Slot ID, Entry Time,
 Exit Time, Duration (minutes), Billable Hours, Hourly Rate (INR), Final Fee
 (INR), Status, Source, Owner Name.
@@ -448,3 +452,7 @@ keep the rate captured when they were created.
 `200 OK` with `{ "backedUpAt": 1791542324, "folderName": "backup-20261009-163000" }`.
 Copies the four data files into `data/backups/<folderName>/`. Only the folder
 name is returned; the full path stays on the server.
+
+The ten most recent backup folders are kept; taking a new one removes the
+oldest. A folder that cannot be removed does not fail the request — the backup
+itself has already succeeded by that point.

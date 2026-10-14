@@ -189,6 +189,15 @@ std::string escapeCsvTextField(const std::string& value) {
 
 std::string toCsv(const std::vector<const ParkingTicket*>& tickets) {
     std::ostringstream output;
+
+    // A byte-order mark. Owner names may be written in a local script -
+    // isValidOwnerName deliberately allows it - and Excel assumes the system
+    // code page for a plain .csv, which turns those names into mojibake. These
+    // three bytes tell it the file is UTF-8.
+    output << static_cast<char>(0xEF)
+           << static_cast<char>(0xBB)
+           << static_cast<char>(0xBF);
+
     output << "Ticket ID,Registration Number,Vehicle Type,Slot ID,Entry Time,Exit Time,"
               "Duration (minutes),Billable Hours,Hourly Rate (INR),Final Fee (INR),Status,Source,"
               "Owner Name\r\n";
