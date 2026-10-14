@@ -298,6 +298,11 @@ svg { width: 20px; height: 20px; fill: none; color: inherit; }
   height: var(--topbar-h);
   padding: 0 20px;
   flex: 0 0 auto;
+  color: inherit; text-decoration: none;
+}
+.sidebar__brand:hover .brand-name { color: var(--primary); }
+.sidebar__brand:focus-visible {
+  outline: 2px solid var(--primary); outline-offset: -2px; border-radius: var(--radius-sm);
 }
 
 /* The logo mark. It carries its own colour, so unlike the interface icons it
@@ -994,13 +999,13 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 }
 .live-pill__dot {
   width: 7px; height: 7px; border-radius: 50%;
-  background: var(--state-free);
+  background: var(--primary);
   animation: live-pulse 2.4s ease-out infinite;
 }
 .live-pill.is-offline { color: var(--danger-ink); border-color: var(--danger); }
-.live-pill.is-offline .live-pill__dot { background: var(--state-busy); animation: none; }
+.live-pill.is-offline .live-pill__dot { background: var(--danger); animation: none; }
 @keyframes live-pulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--state-free) 55%, transparent); }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 55%, transparent); }
   70%  { box-shadow: 0 0 0 6px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }

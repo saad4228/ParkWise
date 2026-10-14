@@ -80,10 +80,11 @@
 
   <!-- ===== Sidebar ===== -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar__brand">
+    <a class="sidebar__brand" href="#/dashboard" data-navigate="dashboard"
+       aria-label="ParkWise - go to the dashboard" title="Back to dashboard">
       <svg class="brand-mark" aria-hidden="true"><use href="#pw-mark"/></svg>
       <span class="brand-name">Park<span class="brand-name__accent">Wise</span></span>
-    </div>
+    </a>
     <nav class="sidebar__nav" aria-label="Main">
       <!-- data-tip is the label shown beside an icon when the menu is collapsed.
            The visible <span> stays in the DOM either way, so the link always
@@ -140,8 +141,8 @@
           <span class="icon-btn__dot" id="alertsDot" hidden></span>
         </button>
         <div class="topbar__user">
-          <span class="avatar" aria-hidden="true">A</span>
-          <span class="topbar__user-name">Admin</span>
+          <span class="avatar" aria-hidden="true">S</span>
+          <span class="topbar__user-name">Saad</span>
         </div>
       </div>
     </header>
