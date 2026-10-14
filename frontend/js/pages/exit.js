@@ -11,6 +11,7 @@ import {
   confirmDialog, feeSummaryHtml, badge,
 } from '../ui.js';
 import { ticketPanel, printTicket } from '../ticket.js';
+import { showReceiptPrinter, closeReceiptPrinter } from '../receipt.js';
 
 export async function render(container, ctx) {
   container.innerHTML = `
@@ -164,6 +165,7 @@ export async function render(container, ctx) {
     try {
       const outcome = await api.vehicleExit(ticket.ticketId);
       showCompleted(outcome);
+      showReceiptPrinter(outcome.ticket);
 
       toast('Checkout complete',
             `${ticket.registrationNumber} left slot ${outcome.slotId}. Collected ${money(outcome.finalFeePaise)}.`,
@@ -217,6 +219,7 @@ export async function render(container, ctx) {
 
           <div class="form-actions" style="margin-top:18px">
             <button class="btn btn--primary" id="nextVehicle">Check out another vehicle</button>
+            <button class="btn btn--ghost" id="viewReceipt">${icon('#i-print')}View receipt</button>
             <button class="btn btn--ghost" data-navigate="dashboard">Back to dashboard</button>
           </div>
         </div>
@@ -224,6 +227,9 @@ export async function render(container, ctx) {
 
     result.querySelector('[data-print-ticket]')
       ?.addEventListener('click', () => printTicket(outcome.ticket));
+
+    result.querySelector('#viewReceipt')
+      .addEventListener('click', () => showReceiptPrinter(outcome.ticket));
 
     result.querySelector('#nextVehicle').addEventListener('click', () => {
       result.innerHTML = '';
@@ -250,4 +256,8 @@ export async function render(container, ctx) {
   } else {
     input.focus();
   }
+
+  // Navigating away with the printer still open must not leave the overlay
+  // covering the screen it moved to.
+  return closeReceiptPrinter;
 }

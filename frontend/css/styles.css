@@ -1603,6 +1603,235 @@ button.log__row:hover .log__plate { color: var(--primary-ink); }
   .topbar__actions { gap: 4px; }
 }
 
+
+/* --------------------------------------------------------------------- */
+/* Receipt printer                                                         */
+/* ---------------------------------------------------------------------
+   A thermal printer feeding out the parking receipt after a checkout.
+
+   The whole illusion rests on .paper-track: it clips, its top edge lines up
+   with the printer's slot, and the paper inside it starts translated fully
+   above that edge - so the paper is out of sight "inside" the machine and is
+   revealed as it slides down through the slot. The track keeps the paper's
+   full height from the start, so nothing below it moves while the paper
+   feeds, and the text is never scaled or stretched to animate it.         */
+
+.receipt-host {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(10, 20, 17, .55);
+  backdrop-filter: blur(2px);
+  display: grid; place-items: start center;
+  padding: 28px 16px 40px;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.receipt-host[hidden] { display: none; }
+
+/* Stops the page behind scrolling while the printer is open. */
+body.is-printing { overflow: hidden; }
+
+.printer-stage {
+  --paper-w: 330px;
+  --paper: #FCFBF7;
+  width: var(--paper-w);
+  display: flex; flex-direction: column; align-items: center;
+  animation: printer-in .34s var(--ease) both;
+}
+@keyframes printer-in { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+
+/* ---- the machine ---- */
+
+.printer {
+  width: calc(var(--paper-w) + 44px);
+  background: linear-gradient(#1B2E29, #142420);
+  border-radius: 16px 16px 10px 10px;
+  padding: 13px 16px 0;
+  box-shadow: 0 18px 34px -16px rgba(5, 18, 14, .7),
+              inset 0 1px 0 rgba(255, 255, 255, .08);
+  position: relative;
+}
+.printer__top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.printer__brand {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 600; color: #EAF3EF;
+}
+.printer__mark { width: 19px; height: 19px; flex: 0 0 19px; }
+
+.printer__lamp {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: #6E8C82;
+  transition: color .3s var(--ease);
+}
+.printer__lamp i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #3C544C;
+  transition: background-color .3s var(--ease), box-shadow .3s var(--ease);
+}
+.is-ready .printer__lamp { color: #9FE6C8; }
+.is-ready .printer__lamp i {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+/* The mouth. Its inner shadow is what sells the paper coming from inside. */
+.printer__slot {
+  height: 11px;
+  border-radius: 3px 3px 0 0;
+  background: #0A1512;
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, .8),
+              inset 0 -1px 0 rgba(255, 255, 255, .05);
+}
+
+/* A barely-there mechanical tremor while the motor is running. */
+.is-feeding .printer { animation: printer-shake .14s steps(2, end) infinite; }
+@keyframes printer-shake {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(.6px); }
+}
+
+/* ---- the paper ---- */
+
+.paper-track {
+  width: var(--paper-w);
+  overflow: hidden;
+  position: relative;
+}
+/* The shadow the printer casts onto the paper just below the slot. */
+.paper-track::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: 22px; z-index: 2;
+  background: linear-gradient(rgba(6, 18, 14, .4), transparent);
+  pointer-events: none;
+}
+
+.paper {
+  transform: translateY(-100%);
+  color: #14211D;
+  filter: drop-shadow(0 10px 18px rgba(8, 22, 18, .3));
+}
+.is-feeding .paper {
+  transition: transform 1.1s cubic-bezier(.33, .02, .18, 1);
+  transform: translateY(0);
+}
+.is-fed .paper, .is-done .paper { transform: translateY(0); }
+
+.paper__sheet {
+  background: var(--paper);
+  padding: 22px 26px 18px;
+  font-size: 12.5px; line-height: 1.5;
+}
+.paper__head { text-align: center; margin-bottom: 14px; }
+.paper__mark { width: 32px; height: 32px; margin: 0 auto 6px; display: block; }
+.paper__brand { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+.paper__title {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: #5C6E68; margin-top: 3px;
+}
+.paper__id {
+  font-size: 11.5px; font-weight: 600; letter-spacing: .04em;
+  color: #14211D; margin-top: 7px;
+}
+.paper__id--foot { text-align: center; margin-top: 5px; color: #5C6E68; }
+
+.paper__rule { border-top: 1px dashed #B9C6C1; margin: 12px 0; }
+.paper__label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: #869590; margin-bottom: 6px;
+}
+.paper__row {
+  display: flex; justify-content: space-between; gap: 14px;
+  padding: 2px 0;
+}
+.paper__row span:first-child { color: #5C6E68; }
+.paper__row span:last-child { font-weight: 600; text-align: right; }
+
+.paper__total {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
+  font-weight: 700;
+}
+.paper__total span:first-child {
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #5C6E68;
+}
+.paper__total span:last-child { font-size: 23px; }
+.paper__total--pending span:last-child { font-size: 15px; color: #8A6D2F; }
+
+.paper__note { font-size: 10.5px; line-height: 1.45; color: #6B7A74; margin-top: 9px; }
+/* A stamped receipt keeps a clear gutter on the right for the ink, so the
+   stamp lands across the margin and the rule rather than across the words. */
+.has-stamp .paper__note { padding-right: 104px; min-height: 42px; }
+
+.paper__barcode { width: 100%; height: 38px; display: block; fill: #14211D; }
+
+/* The torn edge. The teeth are paper, the gaps show what is behind. */
+.paper__tear { display: block; width: 100%; height: 9px; fill: var(--paper); margin-top: -1px; }
+
+/* ---- the stamp ---- */
+
+.stamp {
+  position: absolute; z-index: 3;
+  right: 18px; bottom: 84px;
+  padding: 5px 14px 6px;
+  border: 2.5px solid currentColor;
+  border-radius: 5px;
+  font-size: 20px; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: rotate(-13deg) scale(2.4);
+  pointer-events: none;
+  /* Ink sits unevenly on paper, which is what keeps this from reading as a
+     badge: the blend lets the paper's tone come through the colour. */
+  mix-blend-mode: multiply;
+}
+.stamp--paid { color: #C4342A; }
+.stamp--free { color: #5C6E68; }
+.stamp span { display: block; opacity: .88; }
+
+.is-stamped .stamp { animation: stamp-hit .42s cubic-bezier(.3, 1.5, .45, 1) both; }
+@keyframes stamp-hit {
+  0%   { opacity: 0;  transform: rotate(-20deg) scale(2.4); }
+  55%  { opacity: 1;  transform: rotate(-11deg) scale(.93); }
+  75%  { transform: rotate(-13deg) scale(1.04); }
+  100% { opacity: 1;  transform: rotate(-12deg) scale(1); }
+}
+
+/* ---- the controls ---- */
+
+.receipt-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  margin-top: 22px;
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s var(--ease), visibility .3s;
+}
+.is-done .receipt-actions { opacity: 1; visibility: visible; }
+
+.receipt-skip {
+  margin-top: 14px;
+  background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 12px; color: #A9C3BA;
+  padding: 6px 10px; border-radius: 999px;
+}
+.receipt-skip:hover { color: #fff; background: rgba(255, 255, 255, .1); }
+.receipt-skip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.is-done .receipt-skip { display: none; }
+
+@media (max-width: 420px) {
+  .printer-stage { --paper-w: min(300px, calc(100vw - 72px)); }
+  .paper__sheet { padding: 20px 20px 16px; }
+  .stamp { right: 14px; font-size: 17px; }
+}
+
+/* Someone who has asked for less motion gets the receipt, not the theatre:
+   receipt.js skips straight to the finished state, and these make sure
+   nothing animates on the way there. */
+@media (prefers-reduced-motion: reduce) {
+  .printer-stage { animation: none; }
+  .is-feeding .printer { animation: none; }
+  .paper { transform: translateY(0); }
+  .is-stamped .stamp { animation: none; opacity: 1; transform: rotate(-12deg) scale(1); }
+}
+
 /* --------------------------------------------------------------------- */
 /* Motion                                                                  */
 /* ---------------------------------------------------------------------
@@ -1686,7 +1915,7 @@ table.data tbody tr { animation: row-in .3s var(--ease) both; }
   @page { size: auto; margin: 14mm; }
 
   body { background: #fff; }
-  .app-shell, .toast-host, .dialog-host { display: none !important; }
+  .app-shell, .toast-host, .dialog-host, .receipt-host { display: none !important; }
 
   .print-host {
     display: block !important;
